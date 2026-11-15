@@ -1,0 +1,3174 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Коч Румс</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<style>
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; font-family: system-ui, Arial, sans-serif; color: #fff; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #sub { position: fixed; left: 50%; bottom: 9%; transform: translateX(-50%); max-width: 80%; text-align: center;
+    font-size: clamp(16px, 2.3vw, 28px); line-height: 1.3; padding: 6px 14px; background: rgba(0,0,0,.5); border-radius: 6px;
+    text-shadow: 0 0 4px #000; opacity: 0; transition: opacity .25s; pointer-events: none; }
+  #sub.on { opacity: 1; }
+  #overlay button { font: inherit; font-size: clamp(14px, 2vw, 22px); padding: 10px 18px; margin: 6px; border-radius: 8px; border: 1px solid #ffe9a0; background: rgba(0,0,0,.55); color: #ffe9a0; cursor: pointer; }
+  #overlay button:hover { background: rgba(255,233,160,.2); }
+  #overlay input { font: inherit; font-size: clamp(14px, 2vw, 22px); width: 6ch; padding: 10px; margin: 6px; border-radius: 8px; border: 1px solid #ffe9a0; background: rgba(0,0,0,.55); color: #fff; text-transform: uppercase; text-align: center; letter-spacing: 3px; }
+  #overlay .lobby { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; margin-top: 10px; }
+  #overlay .code { font-size: clamp(40px, 9vw, 110px); letter-spacing: 12px; color: #9fffb0; }
+  #chatlog { position: fixed; right: 16px; top: 14px; padding: 4px 12px; background: rgba(0,0,0,.5); border-radius: 6px; font-size: clamp(14px, 1.8vw, 22px); color: #bfffee; display: none; pointer-events: none; }
+  #items { position: fixed; left: 16px; top: 14px; padding: 4px 12px; background: rgba(0,0,0,.5); border-radius: 6px; font-size: clamp(14px, 1.8vw, 22px); color: #ffe9a0; display: none; pointer-events: none; }
+  #hint { position: fixed; left: 50%; bottom: 20%; transform: translateX(-50%); font-size: clamp(14px, 1.8vw, 22px);
+    padding: 4px 12px; background: rgba(0,0,0,.55); border: 1px solid #fff6; border-radius: 6px; opacity: 0; pointer-events: none; }
+  #hint.on { opacity: 1; }
+  #cross { position: fixed; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; background: #fff8; pointer-events: none; }
+  #stam { position: fixed; left: 16px; bottom: 16px; width: 140px; height: 8px; background: #0008; border: 1px solid #fff5; display: none; }
+  #stam i { display: block; height: 100%; width: 100%; background: #e8d36a; }
+  #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity .6s; }
+  #vig { position: fixed; inset: 0; pointer-events: none; opacity: 0; transition: opacity .3s;
+    background: radial-gradient(ellipse 60% 14% at 50% 50%, transparent 0, rgba(0,0,0,.96) 100%); }
+  #vig.on { opacity: 1; }
+  #msg { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); font-size: clamp(28px, 6vw, 72px); font-weight: 800;
+    color: #e33; text-shadow: 0 0 12px #000; opacity: 0; pointer-events: none; transition: opacity .3s; text-align: center; }
+  #msg.on { opacity: 1; }
+  #overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    background: rgba(0,0,0,.86); text-align: center; cursor: pointer; padding: 20px; box-sizing: border-box; }
+  #overlay h1 { font-size: clamp(36px, 8vw, 96px); margin: 0; letter-spacing: 4px; color: #e8d36a; text-shadow: 0 0 18px #a80; }
+  #overlay p { margin: 0; font-size: clamp(14px, 2vw, 22px); max-width: 640px; opacity: .85; }
+  #overlay b { font-size: clamp(18px, 2.6vw, 30px); margin-top: 10px; }
+  #overlay.hide { display: none; }
+  #overlay { z-index: 20; }
+  #touch { display: none; position: fixed; inset: 0; z-index: 5; touch-action: none; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  body.touch:not(.ovl) #touch { display: block; }
+  body.touch { touch-action: none; -webkit-user-select: none; user-select: none; }
+  #look { position: absolute; right: 0; top: 0; width: 55%; height: 100%; touch-action: none; }
+  #joy { position: absolute; left: 0; top: 0; width: 45%; height: 100%; touch-action: none; }
+  #joyb { position: absolute; left: calc(18px + env(safe-area-inset-left)); bottom: calc(24px + env(safe-area-inset-bottom)); width: 120px; height: 120px; margin: 0;
+    border-radius: 50%; border: 2px solid #fff6; background: #ffffff14; pointer-events: none; }
+  #joyk { position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; border-radius: 50%; background: #ffffff55; border: 2px solid #fff9; transform: translate(-50%, -50%); }
+  .tb { position: absolute; border-radius: 50%; border: 2px solid #ffe9a0; background: rgba(0,0,0,.45); color: #ffe9a0; font: 700 22px system-ui, Arial, sans-serif; touch-action: none; -webkit-tap-highlight-color: transparent; padding: 0; }
+  .tb:active, .tb.hot { background: rgba(232,211,106,.45); }
+  #tE { right: calc(24px + env(safe-area-inset-right)); bottom: calc(96px + env(safe-area-inset-bottom)); width: 84px; height: 84px; font-size: 30px; }
+  #tE.hot { box-shadow: 0 0 16px #ffe9a0; }
+  #tRun { right: calc(116px + env(safe-area-inset-right)); bottom: calc(26px + env(safe-area-inset-bottom)); width: 66px; height: 66px; font-size: 14px; }
+  #tchat { position: absolute; left: 50%; bottom: calc(8px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: none; gap: 8px; }
+  #tchat .tb { position: static; border-radius: 10px; width: auto; height: 38px; padding: 0 10px; font-size: 14px; }
+  #tpause { position: absolute; left: 50%; top: calc(8px + env(safe-area-inset-top)); transform: translateX(-50%); width: 44px; height: 36px; font-size: 18px; border-radius: 8px; }
+  body.touch #stam { left: 50%; bottom: auto; top: calc(52px + env(safe-area-inset-top)); transform: translateX(-50%); }
+  body.touch #cross { display: none; }
+  #pc { position: fixed; inset: 0; z-index: 15; display: none; align-items: center; justify-content: center; background: rgba(0,0,0,.65); }
+  #pc.on { display: flex; }
+  #pc .scr { position: relative; width: min(920px, 96vw); height: min(600px, 88vh); background: linear-gradient(#1d6fa5, #3fa0d8); border: 10px solid #222; border-radius: 10px; overflow: hidden; font: 15px Tahoma, Arial, sans-serif; color: #111; box-sizing: border-box; }
+  #pc .scr.glitch { animation: glitch .18s infinite; }
+  @keyframes glitch { 0% { filter: none; transform: none; } 50% { filter: hue-rotate(120deg) contrast(1.6); transform: translate(3px, -2px); } 100% { filter: invert(.15); transform: translate(-2px, 1px); } }
+  #pc .ic { width: 84px; margin: 12px 8px; text-align: center; color: #fff; cursor: pointer; text-shadow: 0 1px 2px #000; font-size: 13px; }
+  #pc .ic i { display: block; font-style: normal; font-size: 34px; }
+  #pc .badge { background: #e33; color: #fff; border-radius: 8px; padding: 0 5px; }
+  #pc .win { position: absolute; left: 104px; top: 14px; right: 14px; bottom: 54px; background: #ece9d8; border: 2px solid #0a246a; display: flex; flex-direction: column; }
+  #pc .tt { display: flex; justify-content: space-between; background: linear-gradient(90deg, #0a246a, #3a6ea5); color: #fff; font-weight: 700; padding: 4px 8px; }
+  #pc .bd { flex: 1; overflow: auto; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+  #pc .msg { max-width: 75%; padding: 6px 10px; border-radius: 8px; background: #fff; }
+  #pc .msg.me { margin-left: auto; background: #c8f0c8; }
+  #pc .msg u { display: block; text-decoration: none; font-size: 12px; color: #0a246a; font-weight: 700; }
+  #pc .dim { color: #555; margin: 4px 0; }
+  #pc .hit { background: #fff; border-left: 3px solid #3a6ea5; padding: 6px 10px; }
+  #pc .sbox { background: #fff; border: 1px solid #888; padding: 6px 10px; margin: 6px 0; color: #777; }
+  #pc button { font: inherit; cursor: pointer; padding: 6px 10px; margin: 3px; border: 1px solid #777; border-radius: 4px; background: #f4f3ee; color: #111; text-align: left; }
+  #pc canvas { max-width: 100%; border: 1px solid #000; cursor: crosshair; align-self: center; }
+  #pc .inside { color: #c00; font-size: clamp(18px, 3vw, 34px); line-height: 1.2; margin: 0; }
+  #pc .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 40px; display: flex; align-items: center; gap: 10px; padding: 0 8px; background: #245edb; color: #fff; }
+  #pc .bar .start { background: #3c9a3c; color: #fff; font-weight: 700; border: 0; border-radius: 0 12px 12px 0; }
+  #pc .bar .up { margin-left: auto; }
+</style>
+</head>
+<body>
+<div id="vig"></div>
+<div id="cross"></div>
+<div id="hint"></div>
+<div id="sub"></div>
+<div id="stam"><i></i></div>
+<div id="items"></div>
+<div id="chatlog"></div>
+<div id="msg"></div>
+<div id="fade"></div>
+<div id="touch">
+  <div id="look"></div>
+  <div id="joy"><div id="joyb"><i id="joyk"></i></div></div>
+  <button class="tb" id="tE" data-code="KeyE">E</button>
+  <button class="tb" id="tRun" data-code="ShiftLeft">БЕГ</button>
+  <div id="tchat">
+    <button class="tb" data-code="Digit1">Сюда!</button><button class="tb" data-code="Digit2">Берегись!</button><button class="tb" data-code="Digit3">Нашёл!</button><button class="tb" data-code="Digit4">Помоги!</button>
+  </div>
+  <button class="tb" id="tpause">⏸</button>
+</div>
+<div id="pc"></div>
+<div id="overlay"></div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="logic.js?v=dlc3"></script>
+<script src="net.js?v=dlc3"></script>
+<script type="module">
+import * as THREE from 'three';
+
+const L = window.KochLogic;
+const S = 2.5;                       // world units per grid cell
+const $ = (id) => document.getElementById(id);
+const params = new URLSearchParams(location.search);
+
+// =====================================================================
+// Renderer / camera / input
+// =====================================================================
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+document.body.prepend(renderer.domElement);
+const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.05, 400);
+camera.rotation.order = 'YXZ';
+const scene = new THREE.Scene();
+addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+});
+
+const keys = {};
+const pressed = new Set();
+addEventListener('keydown', (e) => {
+  if (!keys[e.code]) pressed.add(e.code);
+  keys[e.code] = true;
+  if (e.code === 'KeyP' && started && !ended && !pcOpen && !e.repeat && document.activeElement.tagName !== 'INPUT') {
+    if (paused) resume(); else { clearKeys(); document.exitPointerLock && document.exitPointerLock(); setPaused(true); }
+  }
+  if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
+});
+addEventListener('keyup', (e) => { keys[e.code] = false; });
+const clearKeys = () => { for (const k in keys) keys[k] = false; pressed.clear(); };
+addEventListener('blur', clearKeys);
+document.addEventListener('visibilitychange', () => { if (document.hidden && started && !ended && !paused) { clearKeys(); setPaused(true); } });
+
+const player = { x: 1.5, y: 1.5, yaw: 0, pitch: 0, eye: 1.6, hidden: false, frozen: false, stamina: 1, tired: false, sprint: false, bob: 0, stepDist: 0 };
+let locked = false, paused = true, started = false, ended = false;
+const net = {
+  role: 'solo', link: null, code: '', connected: false, busy: false, gen: 0, snap: null, snapAt: 0, posAt: 0,
+  remote: { interp: null, pos: null, hidden: false },
+  send(m) { if (net.link) net.link.send(m); },
+};
+
+// ---------- touch controls ----------
+const TOUCH = params.get('touch') === '1' || (matchMedia('(pointer: coarse)').matches && navigator.maxTouchPoints > 0);
+const joy = { f: 0, r: 0 };
+if (TOUCH) { document.body.classList.add('touch'); initTouch(); }
+function initTouch() {
+  const zone = $('joy'), base = $('joyb'), knob = $('joyk'), R = 55;
+  let jid = null, cx = 0, cy = 0;
+  const jmove = (e) => {
+    let dx = e.clientX - cx, dy = e.clientY - cy;
+    const d = Math.hypot(dx, dy), k = d > R ? R / d : 1;
+    dx *= k; dy *= k;
+    knob.style.transform = `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px))`;
+    const m = Math.hypot(dx, dy) / R;
+    if (m < 0.25) { joy.f = 0; joy.r = 0; } else { joy.r = dx / R; joy.f = -dy / R; }
+  };
+  const jend = (e) => {
+    if (e.pointerId !== jid) return;
+    jid = null; joy.f = 0; joy.r = 0; knob.style.transform = 'translate(-50%, -50%)';
+    base.style.left = ''; base.style.top = ''; base.style.bottom = '';
+  };
+  zone.addEventListener('pointerdown', (e) => {
+    if (jid !== null) return;
+    e.preventDefault(); jid = e.pointerId; zone.setPointerCapture(e.pointerId);
+    cx = e.clientX; cy = e.clientY;                                   // floating stick: origin where the thumb lands
+    base.style.left = (cx - 60) + 'px'; base.style.top = (cy - 60) + 'px'; base.style.bottom = 'auto';
+    jmove(e);
+  });
+  zone.addEventListener('pointermove', (e) => { if (e.pointerId === jid) jmove(e); });
+  zone.addEventListener('pointerup', jend); zone.addEventListener('pointercancel', jend);
+
+  const look = $('look'); let lid = null, lx = 0, ly = 0;
+  look.addEventListener('pointerdown', (e) => { if (lid !== null) return; e.preventDefault(); lid = e.pointerId; look.setPointerCapture(e.pointerId); lx = e.clientX; ly = e.clientY; });
+  look.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== lid) return;
+    const dx = e.clientX - lx, dy = e.clientY - ly; lx = e.clientX; ly = e.clientY;
+    if (paused) return;
+    player.yaw -= dx * 0.006;
+    player.pitch = Math.max(-1.45, Math.min(1.45, player.pitch - dy * 0.006));
+  });
+  const lend = (e) => { if (e.pointerId === lid) lid = null; };
+  look.addEventListener('pointerup', lend); look.addEventListener('pointercancel', lend);
+
+  for (const b of document.querySelectorAll('#touch .tb[data-code], #touch .tb[data-hold]')) {
+    const code = b.dataset.code, hold = b.dataset.hold;
+    b.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); b.setPointerCapture(e.pointerId);
+      if (hold) keys[hold] = true; else { if (!keys[code]) pressed.add(code); }
+      if (navigator.vibrate) try { navigator.vibrate(12); } catch (er) { /* optional */ }
+    });
+    const up = () => { if (hold) keys[hold] = false; };
+    b.addEventListener('pointerup', up); b.addEventListener('pointercancel', up);
+  }
+  $('tpause').addEventListener('pointerdown', (e) => { e.preventDefault(); if (started && !ended && !paused) setPaused(true); });
+  document.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+
+function requestLock() {
+  try { const p = renderer.domElement.requestPointerLock(); if (p && p.catch) p.catch(() => {}); } catch (e) { /* no lock: keyboard look */ }
+}
+document.addEventListener('pointerlockchange', () => {
+  locked = document.pointerLockElement === renderer.domElement;
+  if (!locked && started && !ended && !pcOpen) { clearKeys(); setPaused(true); }
+});
+document.addEventListener('mousemove', (e) => {
+  if (!locked || paused) return;
+  player.yaw -= e.movementX * 0.0022;
+  player.pitch = Math.max(-1.45, Math.min(1.45, player.pitch - e.movementY * 0.0022));
+});
+renderer.domElement.addEventListener('click', () => { if (!locked && started && !ended && !pcOpen) { requestLock(); setPaused(false); } });
+
+// =====================================================================
+// HUD, subtitles, game-time waits
+// =====================================================================
+let subT = 0;
+const waits = [];
+function wait(sec) { return new Promise((r) => waits.push({ t: sec, r })); }
+function tickWaits(dt) {
+  for (let i = waits.length - 1; i >= 0; i--) {
+    waits[i].t -= dt;
+    if (waits[i].t <= 0) { const w = waits.splice(i, 1)[0]; w.r(); }
+  }
+}
+function say(text, sec = 3, own = false) {
+  if (net.role === 'guest' && !own) return wait(sec);       // guest shows only the host's mirrored lines
+  if (net.role === 'host') net.send({ type: 'say', text: String(text).slice(0, 120), sec });
+  const el = $('sub');
+  el.textContent = text; el.classList.add('on');
+  subT = sec;
+  return wait(sec);
+}
+function tickSub(dt) { if (subT > 0) { subT -= dt; if (subT <= 0) $('sub').classList.remove('on'); } }
+function setHint(t) {
+  const h = $('hint');
+  if (t) { h.textContent = TOUCH ? t.replace(/^E — /, 'Кнопка E — ') : t; h.classList.add('on'); } else h.classList.remove('on');
+  if (TOUCH) $('tE').classList.toggle('hot', !!t);
+}
+let msgTimer = 0;
+function bigMsg(t, ms = 1800) { const m = $('msg'); m.textContent = t; m.classList.add('on'); clearTimeout(msgTimer); msgTimer = setTimeout(() => m.classList.remove('on'), ms); }
+function fade(op, color = '#000') { const f = $('fade'); f.style.background = color; f.style.opacity = op; }
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+let overlayAt = 0;
+function showOverlay(html, onClick) {
+  const o = $('overlay');
+  o.innerHTML = TOUCH ? html.replace(/Кликни/g, 'Тапни') : html; o.classList.remove('hide');
+  document.body.classList.add('ovl');
+  overlayAt = performance.now();
+  // a touch that opened the overlay would otherwise fire its synthesized click on the overlay at once
+  o.onclick = onClick ? (e) => { if (performance.now() - overlayAt > 400) onClick(e); } : null;
+}
+function hideOverlay() { $('overlay').classList.add('hide'); document.body.classList.remove('ovl'); }
+function resume() { audio.start(); if (!pcOpen) requestLock(); hideOverlay(); setPaused(false); }
+function setPaused(p) {
+  paused = p;
+  if (p && started && !ended) {
+    audio.pause();
+    showOverlay('<h1>ПАУЗА</h1><p>Кликни, чтобы продолжить</p><p>P — пауза / продолжить</p>', resume);
+  }
+}
+
+// =====================================================================
+// Procedural audio
+// =====================================================================
+const audio = (() => {
+  let ctx = null, master, lp, noiseBuf, humGain, droneGain, exitGain;
+  function ensure() {
+    if (ctx) return true;
+    try {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      master = ctx.createGain(); master.gain.value = 0.8;
+      lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 20000;
+      master.connect(lp); lp.connect(ctx.destination);
+      noiseBuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate);
+      const d = noiseBuf.getChannelData(0);
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+      humGain = ctx.createGain(); humGain.gain.value = 0; humGain.connect(master);
+      [50, 100, 150, 200].forEach((f, i) => {
+        const o = ctx.createOscillator(); o.frequency.value = f; o.type = 'sine';
+        const g = ctx.createGain(); g.gain.value = 0.03 / (i + 1);
+        o.connect(g); g.connect(humGain); o.start();
+      });
+      droneGain = ctx.createGain(); droneGain.gain.value = 0; droneGain.connect(master);
+      const df = ctx.createBiquadFilter(); df.type = 'lowpass'; df.frequency.value = 220; df.connect(droneGain);
+      [55, 55.8, 82.4].forEach((f) => { const o = ctx.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(df); o.start(); });
+      exitGain = ctx.createGain(); exitGain.gain.value = 0; exitGain.connect(master);
+      const eo = ctx.createOscillator(); eo.type = 'sine'; eo.frequency.value = 880; eo.connect(exitGain); eo.start();
+    } catch (e) { ctx = null; return false; }
+    return true;
+  }
+  const safe = (fn) => (...a) => { try { if (ensure()) return fn(...a); } catch (e) { /* audio is optional */ } };
+  function env(g, t0, peak, dur) {
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(peak, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  }
+  function noise(dur, freq, type, peak) {
+    const t0 = ctx.currentTime;
+    const src = ctx.createBufferSource(); src.buffer = noiseBuf;
+    const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq;
+    const g = ctx.createGain(); env(g, t0, peak, dur);
+    src.connect(f); f.connect(g); g.connect(master); src.start(t0); src.stop(t0 + dur + 0.05);
+  }
+  function osc(type, f0, f1, dur, peak) {
+    const t0 = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type = type;
+    o.frequency.setValueAtTime(f0, t0); o.frequency.exponentialRampToValueAtTime(Math.max(1, f1), t0 + dur);
+    const g = ctx.createGain(); env(g, t0, peak, dur);
+    o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + dur + 0.05);
+  }
+  return {
+    start: safe(() => { if (ctx.state === 'suspended') ctx.resume(); }),
+    pause() { try { if (ctx && ctx.state === 'running') ctx.suspend(); } catch (e) { /* audio is optional */ } },
+    hum: safe((on) => { humGain.gain.setTargetAtTime(on ? 1 : 0, ctx.currentTime, 0.3); droneGain.gain.setTargetAtTime(on ? 0.05 : 0, ctx.currentTime, 0.5); }),
+    danger: safe((v) => droneGain.gain.setTargetAtTime(0.05 + 0.14 * v, ctx.currentTime, 0.2)),
+    exitProx: safe((v) => exitGain.gain.setTargetAtTime(0.025 * v, ctx.currentTime, 0.2)),
+    step: safe(() => noise(0.07, 260, 'bandpass', 0.12)),
+    sting: safe(() => { osc('sawtooth', 220, 200, 0.7, 0.18); osc('sawtooth', 233, 210, 0.7, 0.18); noise(0.3, 1500, 'highpass', 0.1); }),
+    caught: safe(() => { osc('sawtooth', 1000, 80, 0.7, 0.3); noise(0.6, 800, 'lowpass', 0.3); }),
+    thud: safe(() => { osc('sine', 90, 25, 0.5, 0.9); noise(0.3, 300, 'lowpass', 0.5); }),
+    shot: safe(() => { noise(0.14, 2800, 'lowpass', 0.5); osc('square', 180, 50, 0.1, 0.2); }),
+    bell: safe(() => { for (let i = 0; i < 5; i++) setTimeout(() => { try { osc('sine', 1250, 1200, 0.12, 0.25); } catch (e) {} }, i * 180); }),
+    beep: safe(() => osc('sine', 1000, 990, 0.12, 0.12)),
+    pickup: safe(() => { osc('sine', 660, 990, 0.12, 0.25); setTimeout(() => { try { osc('sine', 990, 1320, 0.15, 0.2); } catch (e) {} }, 100); }),
+    splash: safe(() => noise(0.18, 900, 'bandpass', 0.22)),
+    door: safe(() => { noise(0.25, 500, 'lowpass', 0.3); osc('sine', 300, 150, 0.2, 0.2); }),
+    fall: safe((sec) => {
+      const t0 = ctx.currentTime;
+      const o = ctx.createOscillator(); o.type = 'sine';
+      o.frequency.setValueAtTime(900, t0); o.frequency.exponentialRampToValueAtTime(35, t0 + sec);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t0);
+      g.gain.exponentialRampToValueAtTime(0.18, t0 + 1); g.gain.exponentialRampToValueAtTime(0.0001, t0 + sec);
+      o.connect(g); g.connect(master); o.start(t0); o.stop(t0 + sec + 0.1);
+      const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.setValueAtTime(300, t0); f.frequency.linearRampToValueAtTime(1500, t0 + sec);
+      const wg = ctx.createGain(); wg.gain.setValueAtTime(0.0001, t0); wg.gain.linearRampToValueAtTime(0.35, t0 + sec * 0.8); wg.gain.linearRampToValueAtTime(0.0001, t0 + sec);
+      src.connect(f); f.connect(wg); wg.connect(master); src.start(t0); src.stop(t0 + sec + 0.1);
+    }),
+    lowpass: safe((on) => lp.frequency.setTargetAtTime(on ? 500 : 20000, ctx.currentTime, 0.3)),
+  };
+})();
+
+function speak(text, pitch = 1.5) {
+  try {
+    if (!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'ru-RU'; u.pitch = pitch; u.rate = 1.1;
+    speechSynthesis.speak(u);
+  } catch (e) { /* optional */ }
+}
+
+// =====================================================================
+// Procedural textures
+// =====================================================================
+function ctex(w, h, draw, rx = 1, ry = 1) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h;
+  draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(rx, ry);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+function speckle(g, w, h, n, colors) {
+  for (let i = 0; i < n; i++) {
+    g.fillStyle = colors[(Math.random() * colors.length) | 0];
+    g.fillRect(Math.random() * w, Math.random() * h, 1 + Math.random() * 2, 1 + Math.random() * 2);
+  }
+}
+const T = {
+  wallpaper: () => ctex(256, 256, (g, w, h) => {
+    g.fillStyle = '#bfae4a'; g.fillRect(0, 0, w, h);
+    for (let x = 0; x < w; x += 32) { g.fillStyle = '#a89638'; g.fillRect(x, 0, 4, h); g.fillStyle = '#cfbe58'; g.fillRect(x + 16, 0, 2, h); }
+    speckle(g, w, h, 1800, ['#9d8c34', '#d4c460', '#b3a141']);
+    const gr = g.createLinearGradient(0, h * 0.8, 0, h); gr.addColorStop(0, 'rgba(60,45,10,0)'); gr.addColorStop(1, 'rgba(60,45,10,.55)');
+    g.fillStyle = gr; g.fillRect(0, h * 0.8, w, h * 0.2);
+  }),
+  carpet: (rx, ry) => ctex(128, 128, (g, w, h) => { g.fillStyle = '#8c7b3a'; g.fillRect(0, 0, w, h); speckle(g, w, h, 1500, ['#7a6a2e', '#9b8a45', '#6d5e27']); }, rx, ry),
+  ceiling: (rx, ry) => ctex(128, 128, (g, w, h) => {
+    g.fillStyle = '#d6d0b4'; g.fillRect(0, 0, w, h); speckle(g, w, h, 500, ['#bdb79c', '#e4dfc6']);
+    g.strokeStyle = '#8a866f'; g.lineWidth = 3; g.strokeRect(0, 0, w, h);
+  }, rx, ry),
+  schoolWall: () => ctex(256, 256, (g, w, h) => {
+    g.fillStyle = '#e8e2c8'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#6f9f7a'; g.fillRect(0, h * 0.55, w, h * 0.45);
+    g.fillStyle = '#4d7a58'; g.fillRect(0, h * 0.55, w, 4);
+    speckle(g, w, h, 800, ['#00000010', '#ffffff18']);
+  }),
+  schoolFloor: (rx, ry) => ctex(128, 128, (g, w, h) => {
+    g.fillStyle = '#cfc3a1'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#b9ab86'; g.fillRect(0, 0, w / 2, h / 2); g.fillRect(w / 2, h / 2, w / 2, h / 2);
+    speckle(g, w, h, 400, ['#a89c7a', '#d8ccab']);
+  }, rx / 2, ry / 2),
+  facade: () => ctex(256, 256, (g, w, h) => {
+    g.fillStyle = '#9a9a96'; g.fillRect(0, 0, w, h);
+    for (let y = 16; y < h; y += 64) for (let x = 20; x < w; x += 84) {
+      g.fillStyle = Math.random() < 0.4 ? '#e8c36a' : '#2c3e55'; g.fillRect(x, y, 44, 36);
+      g.fillStyle = '#6c6c68'; g.fillRect(x - 3, y + 36, 50, 5);
+    }
+    speckle(g, w, h, 900, ['#85857f', '#aaa9a3']);
+  }),
+  asphalt: (rx, ry) => ctex(128, 128, (g, w, h) => { g.fillStyle = '#3a3a3d'; g.fillRect(0, 0, w, h); speckle(g, w, h, 1200, ['#2d2d30', '#4b4b50', '#55555a']); }, rx, ry),
+  tile: (rx, ry) => ctex(128, 128, (g, w, h) => {
+    g.fillStyle = '#e8efe9'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#9fb3a8'; g.lineWidth = 3;
+    for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(i * w / 4, 0); g.lineTo(i * w / 4, h); g.moveTo(0, i * h / 4); g.lineTo(w, i * h / 4); g.stroke(); }
+    speckle(g, w, h, 200, ['#cfd9d1']);
+  }, rx, ry),
+  padded: () => ctex(128, 128, (g, w, h) => {
+    g.fillStyle = '#ecebea'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#c4c3c0'; g.lineWidth = 3;
+    g.beginPath(); g.moveTo(0, h / 2); g.lineTo(w / 2, 0); g.lineTo(w, h / 2); g.lineTo(w / 2, h); g.closePath(); g.stroke();
+  }),
+  lino: (rx, ry) => ctex(128, 128, (g, w, h) => { g.fillStyle = '#9aa5a2'; g.fillRect(0, 0, w, h); speckle(g, w, h, 900, ['#8a9592', '#aab5b2']); }, rx, ry),
+  houseWall: () => ctex(128, 128, (g, w, h) => {
+    g.fillStyle = '#d9c9a3'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 40; i++) { g.fillStyle = '#c4b184'; g.beginPath(); g.arc(Math.random() * w, Math.random() * h, 3, 0, 7); g.fill(); }
+  }),
+  rug: (rx, ry) => ctex(128, 128, (g, w, h) => { g.fillStyle = '#7a2e2e'; g.fillRect(0, 0, w, h); speckle(g, w, h, 1200, ['#6a2323', '#8b3a3a']); }, rx, ry),
+  pcCarpet: (rx, ry) => ctex(128, 128, (g, w, h) => { g.fillStyle = '#2d3b66'; g.fillRect(0, 0, w, h); speckle(g, w, h, 1000, ['#243056', '#3a4a7a']); }, rx, ry),
+};
+
+function drawCS(g, w, h) {
+  g.fillStyle = '#6e8fb0'; g.fillRect(0, 0, w, h * 0.45);
+  g.fillStyle = '#b99a63'; g.fillRect(0, h * 0.45, w, h * 0.55);
+  g.fillStyle = '#8a6d3b'; g.fillRect(w * 0.08, h * 0.2, w * 0.32, h * 0.32);
+  g.fillStyle = '#a58451'; g.fillRect(w * 0.55, h * 0.3, w * 0.36, h * 0.22);
+  g.fillStyle = '#2a2116'; g.fillRect(w * 0.2, h * 0.34, w * 0.1, h * 0.18);
+  g.strokeStyle = '#39ff14'; g.lineWidth = 2;
+  g.beginPath(); g.moveTo(w / 2 - 14, h / 2); g.lineTo(w / 2 - 4, h / 2); g.moveTo(w / 2 + 4, h / 2); g.lineTo(w / 2 + 14, h / 2);
+  g.moveTo(w / 2, h / 2 - 14); g.lineTo(w / 2, h / 2 - 4); g.moveTo(w / 2, h / 2 + 4); g.lineTo(w / 2, h / 2 + 14); g.stroke();
+  g.fillStyle = '#2b2b2b'; g.beginPath(); g.moveTo(w * 0.62, h); g.lineTo(w * 0.78, h * 0.72); g.lineTo(w * 0.92, h * 0.78); g.lineTo(w * 0.95, h); g.fill();
+  g.font = 'bold 20px monospace'; g.fillStyle = '#ffb000';
+  g.fillText('+100', 10, h - 12); g.fillText('30/90', w - 100, h - 12);
+  g.fillStyle = '#fff'; g.font = '14px monospace';
+  g.fillText('Counter-Strike 1.6', 8, 18);
+  g.fillText('Koch  [AWP]  Teacher', w - 190, 18);
+}
+
+function labelSprite(text, color = '#ffffff') {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+  const g = c.getContext('2d');
+  g.font = 'bold 40px Arial'; g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.lineWidth = 6; g.strokeStyle = '#000'; g.strokeText(text, 128, 34);
+  g.fillStyle = color; g.fillText(text, 128, 34);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: t, transparent: true }));
+  s.scale.set(1.6, 0.4, 1);
+  return s;
+}
+
+// =====================================================================
+// Mesh helpers and figures
+// =====================================================================
+const mat = (color, o = {}) => new THREE.MeshLambertMaterial({ color, ...o });
+const glow = (color) => new THREE.MeshBasicMaterial({ color });
+function add(parent, geo, m, x = 0, y = 0, z = 0) {
+  const mm = new THREE.Mesh(geo, m instanceof THREE.Material ? m : mat(m));
+  mm.position.set(x, y, z); parent.add(mm); return mm;
+}
+const BOX = (w, h, d) => new THREE.BoxGeometry(w, h, d);
+
+function makeFigure(o) {
+  const g = new THREE.Group();
+  const H = o.h, legH = H * 0.42, torsoH = H * 0.36, headR = H * 0.11;
+  const skin = o.skin ?? 0xf0c8a0;
+  const limb = (w, len, color, x, y) => {
+    const geo = BOX(w, len, w); geo.translate(0, -len / 2, 0);
+    return add(g, geo, color, x, y, 0);
+  };
+  const legL = limb(H * 0.1, legH, o.legs ?? 0x2a2a3a, -H * 0.07, legH);
+  const legR = limb(H * 0.1, legH, o.legs ?? 0x2a2a3a, H * 0.07, legH);
+  add(g, new THREE.CylinderGeometry(H * 0.12, H * 0.15, torsoH, 12), o.body, 0, legH + torsoH / 2, 0);
+  const armL = limb(H * 0.07, torsoH * 0.95, o.body, -H * 0.19, legH + torsoH * 0.95);
+  const armR = limb(H * 0.07, torsoH * 0.95, o.body, H * 0.19, legH + torsoH * 0.95);
+  const headY = legH + torsoH + headR * 0.9;
+  add(g, new THREE.SphereGeometry(headR, 16, 12), skin, 0, headY, 0);
+  const eyeMats = [];
+  for (const s of [-1, 1]) {
+    add(g, new THREE.SphereGeometry(headR * 0.24, 8, 8), 0xffffff, s * headR * 0.38, headY + headR * 0.15, headR * 0.86);
+    const pm = glow(0x111111); eyeMats.push(pm);
+    add(g, new THREE.SphereGeometry(headR * 0.12, 8, 8), pm, s * headR * 0.38, headY + headR * 0.15, headR * 1.05);
+  }
+  add(g, BOX(headR * 0.5, headR * 0.1, headR * 0.1), 0x7a2b2b, 0, headY - headR * 0.4, headR * 0.95);
+  g.userData = { legL, legR, armL, armR, eyeMats, d: { H, headR, headY, legH, torsoH } };
+  if (o.extra) o.extra(g, g.userData.d);
+  if (o.label) { const sp = labelSprite(o.label, o.labelColor); sp.position.set(0, H + 0.35, 0); g.add(sp); }
+  return g;
+}
+const hair = (color) => (g, d) => add(g, new THREE.SphereGeometry(d.headR * 1.06, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), color, 0, d.headY + d.headR * 0.08, 0);
+
+const FIG = {
+  koch: () => { const f = makeFigure({ h: 1.6, body: 0x2b5fd6, label: 'Коч', labelColor: '#9fd0ff', extra: hair(0x2a1d14) }); f.userData.partnerNpc = true; return f; },
+  teacher: () => makeFigure({
+    h: 2.0, body: 0x6b6f78, legs: 0x303038, label: 'Училка', labelColor: '#ffb0b0',
+    extra: (g, d) => {
+      add(g, new THREE.SphereGeometry(d.headR * 0.5, 8, 8), 0x888888, 0, d.headY + d.headR * 1.05, -d.headR * 0.4);
+      for (const s of [-1, 1]) add(g, new THREE.TorusGeometry(d.headR * 0.26, 0.012, 6, 12), 0x111111, s * d.headR * 0.38, d.headY + d.headR * 0.15, d.headR * 0.98);
+      add(g, BOX(0.28, 0.04, 0.38), 0xb0202a, 0.3, d.legH + d.torsoH * 0.55, 0.22).rotation.x = 0.2;
+    },
+  }),
+  standofer: () => makeFigure({
+    h: 1.5, body: 0xe0782a, label: 'Стендофер', labelColor: '#ffd080',
+    extra: (g, d) => {
+      add(g, new THREE.CylinderGeometry(d.headR * 1.08, d.headR * 1.08, d.headR * 0.5, 14), 0x1d1d22, 0, d.headY + d.headR * 0.75, 0);
+      add(g, BOX(d.headR * 1.5, 0.02, d.headR * 0.9), 0x1d1d22, 0, d.headY + d.headR * 0.55, d.headR * 1.0);
+      add(g, BOX(0.28, 0.02, 0.14), glow(0x7fd6ff), 0, d.legH + d.torsoH * 0.7, d.headR * 1.6);
+    },
+  }),
+  kochfam: (name) => {
+    const v = {
+      'Мама Коч': { h: 1.65, body: 0xd04a7a, extra: hair(0x5a3418) },
+      'Папа Коч': { h: 1.85, body: 0x3d4b5c, extra: (g, d) => { hair(0x2a1d14)(g, d); add(g, BOX(d.headR * 0.7, d.headR * 0.14, d.headR * 0.12), 0x2a1d14, 0, d.headY - d.headR * 0.25, d.headR * 1.0); } },
+      'Бабка Коч': { h: 1.5, body: 0x7a4fa0, extra: hair(0x9a68c8) },
+      'Брат Коч': { h: 1.3, body: 0x2b5fd6, extra: hair(0x2a1d14) },
+    }[name];
+    const fig = makeFigure({ ...v, label: name, labelColor: '#9fd0ff' });
+    fig.userData.name = name;
+    return fig;
+  },
+};
+const FAMILY = ['Мама Коч', 'Папа Коч', 'Бабка Коч', 'Брат Коч'];
+
+function animateFigure(g, t, moving, chase) {
+  const u = g.userData;
+  const sw = moving ? Math.sin(t * (chase ? 12 : 7)) * (chase ? 0.9 : 0.55) : 0;
+  u.legL.rotation.x = sw; u.legR.rotation.x = -sw;
+  u.armL.rotation.x = -sw; u.armR.rotation.x = sw;
+  if (chase) { u.armL.rotation.x = u.armR.rotation.x = -1.4; }
+}
+function faceToward(g, tx, tz) { g.rotation.y = Math.atan2(tx - g.position.x, tz - g.position.z); }
+
+// =====================================================================
+// Level builder (shared by every scene)
+// =====================================================================
+function mk(w, h, marks = []) {
+  const rows = [];
+  for (let y = 0; y < h; y++) {
+    let r = '';
+    for (let x = 0; x < w; x++) r += (x === 0 || y === 0 || x === w - 1 || y === h - 1) ? '#' : '.';
+    rows.push(r.split(''));
+  }
+  for (const [ch, x, y] of marks) rows[y][x] = ch;
+  return rows.map((r) => r.join(''));
+}
+function parseRows(rows) {
+  const cells = [], marks = {};
+  rows.forEach((row, y) => {
+    if (row.length !== rows[0].length) throw new Error('bad row length at ' + y);
+    cells.push([...row].map((ch, x) => {
+      if (ch !== '#' && ch !== '.') (marks[ch] = marks[ch] || []).push({ x, y });
+      return ch === '#' ? 0 : 1;
+    }));
+  });
+  return { cells, marks };
+}
+
+function buildShell(cells, def) {
+  const group = new THREE.Group();
+  const h = cells.length, w = cells[0].length, H = def.H ?? 3.2;
+  const near = (x, y) => {
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (cells[y + dy] && cells[y + dy][x + dx] === 1) return true;
+    return false;
+  };
+  const spots = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) if (cells[y][x] === 0 && near(x, y)) spots.push([x, y]);
+  const inst = new THREE.InstancedMesh(BOX(S, H, S), new THREE.MeshLambertMaterial({ map: def.wall() }), spots.length);
+  const m4 = new THREE.Matrix4();
+  spots.forEach(([x, y], i) => { m4.makeTranslation((x + 0.5) * S, H / 2, (y + 0.5) * S); inst.setMatrixAt(i, m4); });
+  group.add(inst);
+
+  const floor = add(group, new THREE.PlaneGeometry(w * S, h * S), new THREE.MeshLambertMaterial({ map: def.floor(w, h) }), w * S / 2, 0, h * S / 2);
+  floor.rotation.x = -Math.PI / 2;
+  if (def.ceil) {
+    const c = add(group, new THREE.PlaneGeometry(w * S, h * S), new THREE.MeshLambertMaterial({ map: def.ceil(w, h) }), w * S / 2, H, h * S / 2);
+    c.rotation.x = Math.PI / 2;
+  }
+  let lampMat = null;
+  if (def.lamps) {
+    lampMat = new THREE.MeshBasicMaterial({ color: def.lampColor ?? 0xfff2b0, side: THREE.DoubleSide });
+    const pts = [];
+    for (let y = 1; y < h - 1; y++) for (let x = 1; x < w - 1; x++) if (cells[y][x] === 1 && def.lampAt(x, y)) pts.push([x, y]);
+    const li = new THREE.InstancedMesh(new THREE.PlaneGeometry(S * 0.6, S * 0.6), lampMat, pts.length);
+    pts.forEach(([x, y], i) => { m4.makeRotationX(Math.PI / 2); m4.setPosition((x + 0.5) * S, H - 0.02, (y + 0.5) * S); li.setMatrixAt(i, m4); });
+    group.add(li);
+  }
+  return { group, lampMat };
+}
+
+function clearScene() {
+  while (scene.children.length) scene.remove(scene.children[0]);
+  scene.fog = null; scene.background = null;
+}
+
+function setupLevel(def) {
+  clearScene();
+  const parsed = def.rows ? parseRows(def.rows) : { cells: def.cells, marks: {} };
+  scene.background = new THREE.Color(def.bg ?? 0x000000);
+  if (def.fog) scene.fog = new THREE.FogExp2(def.fog[0], def.fog[1]);
+  scene.add(new THREE.AmbientLight(def.ambient ?? 0xffffff, def.ai ?? 2.5));
+  const shell = buildShell(def.renderCells || parsed.cells, def);
+  scene.add(shell.group);
+  return { cells: parsed.cells, marks: parsed.marks, group: shell.group, lampMat: shell.lampMat };
+}
+
+function place(x, y, yaw = 0) {
+  player.x = x + 0.5; player.y = y + 0.5; player.yaw = yaw; player.pitch = 0;
+  player.hidden = false; player.frozen = false; player.eye = 1.6; player.sprint = false;
+  $('vig').classList.remove('on'); $('stam').style.display = 'none'; setItemsHud('');
+}
+const wp = (c) => (c + 0.5) * S;     // cell -> world coordinate
+
+// =====================================================================
+// Story manager
+// =====================================================================
+const story = L.createStory(3);
+const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+let seed = params.get('seed') ? (Number(params.get('seed')) >>> 0) : ((Math.random() * 1e9) | 0);
+let sid = 0;              // scene id; async scripts check it to stop when scene changes
+let cur = null;           // current scene object { update, interactables, cells, freeCamera }
+let gameTime = 0;
+
+const BUILDERS = {
+  school: () => buildSchool(), walk: () => buildWalk(), home: () => buildHome(), toilet: () => buildToilet(),
+  fall: () => buildFall(), backrooms: () => buildLevelScene(), asylum: () => buildAsylum(),
+  k_morning: () => buildKMorning(), k_kitchen: () => buildKKitchen(), k_yard: () => buildKYard(), k_break: () => buildKBreak(),
+  k_school: () => buildKSchool(), k_home: () => buildKHome(), k_pc: () => buildKPc(), k_dream: () => buildKDream(),
+  k_night: () => buildKNight(), k_end: () => buildKEnd(), k_hall: () => buildKHall(), k_final: () => buildKFinal(),
+};
+
+async function enterState(opts = {}) {
+  const my = ++sid;
+  net.busy = true; net.snap = null; net.remote.pos = null;
+  if (net.role === 'host') net.send(sceneMsg(opts.color));
+  if (!opts.instant) { fade(1, opts.color || '#000'); await sleep(opts.ms ?? 650); }
+  clearKeys();
+  pcOpen = false; $('pc').classList.remove('on'); $('pc').innerHTML = '';
+  cur = BUILDERS[story.state]();
+  cur.sid = my;
+  if (net.role === 'guest' && story.state !== story.play && !cur.coop) cur.interactables = [];   // host leads the story
+  net.busy = false;
+  if (net.connected) { hidePartnerNpcs(); attachAvatar(); }
+  if (!opts.instant) fade(0);
+  if (started && cur.begin) cur.begin(my);
+}
+function next(opts) { if (net.role === 'guest') return undefined; story.advance(); return enterState(opts); }
+const alive = (my) => my === sid;
+
+// =====================================================================
+// Scene: school corridor
+// =====================================================================
+function buildSchool() {
+  const rows = mk(26, 5, [['P', 1, 2], ['K', 22, 2], ['G', 24, 2]]);
+  const lv = setupLevel({
+    rows, H: 3.4, bg: 0x15140f, ambient: 0xfff4d8, ai: 2.6, fog: [0x15140f, 0.015],
+    wall: T.schoolWall, floor: T.schoolFloor, ceil: (w, h) => T.ceiling(w, h), lamps: true, lampAt: (x, y) => x % 4 === 2 && y === 2,
+  });
+  place(1, 2, -Math.PI / 2);
+  const g = new THREE.Group(); scene.add(g);
+  for (let x = 1; x < 24; x++) {
+    add(g, BOX(0.9, 2.2, 0.5), x % 3 ? 0x4a6a8a : 0x5b7a9a, (x + 0.5) * S, 1.1, S + 0.3);
+    add(g, BOX(0.7, 0.02, 0.02), 0x222222, (x + 0.5) * S, 1.5, S + 0.56);
+  }
+  for (const x of [5, 11, 17]) {
+    const d = add(g, new THREE.PlaneGeometry(1.4, 2.4), 0x6b4a2b, (x + 0.5) * S, 1.2, 4 * S - 0.02); d.rotation.y = Math.PI;
+    const l = labelSprite(`${(x / 6 | 0) + 3}Б`, '#ffe9a0'); l.position.set((x + 0.5) * S, 2.7, 4 * S - 0.1); g.add(l);
+  }
+  const door = add(g, new THREE.PlaneGeometry(1.6, 2.4), glow(0xfff6d8), 25 * S - 0.03, 1.2, wp(2)); door.rotation.y = -Math.PI / 2;
+  const sign = labelSprite('ВЫХОД', '#9fffb0'); sign.position.set(25 * S - 0.2, 2.8, wp(2)); g.add(sign);
+  const koch = FIG.koch(); koch.position.set(wp(22), 0, wp(2)); g.add(koch);
+
+  let ready = false, done = false;
+  const sc = {
+    cells: lv.cells, interactables: [],
+    begin(my) {
+      audio.hum(true); audio.bell();
+      (async () => {
+        await say('ЗВОНОК! 3 и 4 урок закончились. Пора домой.', 4); if (!alive(my)) return;
+        await say('Коч ждёт у выхода. WASD — идти, мышь — смотреть.', 4);
+      })();
+    },
+    update(dt) {
+      koch.rotation.y = Math.atan2(player.x - 22.5, player.y - 2.5);
+      koch.userData.armR.rotation.x = Math.sin(gameTime * 3) * 0.1;
+      if (!ready && Math.hypot(player.x - koch.position.x / S, player.y - koch.position.z / S) < 4) {
+        ready = true;
+        say('Коч: Наконец-то! Погнали домой, я тебя с семьёй познакомлю!', 4.5);
+      }
+      if (ready && !done && Math.hypot(player.x - 24.5, player.y - 2.5) < 1.2) { done = true; audio.door(); next(); }
+    },
+  };
+  return sc;
+}
+
+// =====================================================================
+// Scene: walk home with Koch
+// =====================================================================
+function buildWalk() {
+  const rows = mk(46, 7, [['P', 1, 3], ['G', 44, 3]]);
+  const lv = setupLevel({
+    rows, H: 9, bg: 0xe39a62, ambient: 0xffd8b0, ai: 2.4, fog: [0xe39a62, 0.012],
+    wall: T.facade, floor: (w, h) => T.asphalt(w, h),
+  });
+  place(1, 3, -Math.PI / 2);
+  const sun = new THREE.DirectionalLight(0xffb070, 1.5); sun.position.set(80, 40, 20); scene.add(sun);
+  const g = new THREE.Group(); scene.add(g);
+  const skyTex = ctex(8, 256, (c, w, h) => { const gr = c.createLinearGradient(0, 0, 0, h); gr.addColorStop(0, '#34457a'); gr.addColorStop(0.6, '#e8946a'); gr.addColorStop(1, '#f6c27a'); c.fillStyle = gr; c.fillRect(0, 0, w, h); });
+  const sky = add(scene, new THREE.SphereGeometry(300, 16, 12), new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide, fog: false }), 55, 0, 9);
+  sky.position.set(wp(23), 0, wp(3));
+  for (let x = 4; x < 44; x += 8) {
+    for (const z of [1.6, 5.4]) {
+      add(g, new THREE.CylinderGeometry(0.06, 0.06, 4, 8), 0x222222, wp(x), 2, z * S);
+      add(g, new THREE.SphereGeometry(0.22, 8, 8), glow(0xffe9a0), wp(x), 4.1, z * S);
+    }
+  }
+  for (let x = 2; x < 44; x += 6) {
+    add(g, new THREE.CylinderGeometry(0.14, 0.18, 2.2, 8), 0x5b3a22, wp(x), 1.1, 1.35 * S);
+    add(g, new THREE.SphereGeometry(1.0, 10, 8), 0x2f6b34, wp(x), 2.9, 1.35 * S);
+  }
+  for (const x of [12, 27]) add(g, BOX(1.8, 1.0, 3.6), x === 12 ? 0xb03030 : 0x3050a0, wp(x), 0.5, 5.6 * S);
+  const door = add(g, new THREE.PlaneGeometry(1.8, 2.6), 0x5a3a20, 45 * S - 0.03, 1.3, wp(3)); door.rotation.y = -Math.PI / 2;
+  const sign = labelSprite('ДОМ КОЧА', '#ffe9a0'); sign.position.set(45 * S - 0.3, 3.0, wp(3)); g.add(sign);
+  const koch = FIG.koch(); koch.position.set(wp(4), 0, wp(3)); koch.rotation.y = Math.PI / 2; g.add(koch);
+
+  const lines = [[6, 'Коч: У меня дома вся семья собралась. Мама пирожки сделала!'],
+    [18, 'Коч: А ещё у нас в туалете такое... ладно, потом покажу.'],
+    [30, 'Коч: Не отставай! Мой дом уже близко.'],
+    [40, 'Коч: Вот мой дом! Заходи.']];
+  let li = 0, done = false;
+  return {
+    cells: lv.cells, interactables: [],
+    begin() { audio.hum(false); say('Идёшь домой с Кочем. Не отставай от него.', 4); },
+    update(dt) {
+      const kx = koch.position.x / S;
+      const want = Math.min(player.x + 4, 43.5);
+      let moving = false;
+      if (kx < want) { koch.position.x += 2.0 * dt * S; moving = true; }
+      koch.position.z = wp(3) + Math.sin(gameTime * 0.6) * 0.8;
+      animateFigure(koch, gameTime, moving, false);
+      if (li < lines.length && player.x > lines[li][0]) { say(lines[li][1], 4); li++; }
+      if (!done && Math.hypot(player.x - 44.5, player.y - 3.5) < 1.3) { done = true; audio.door(); next(); }
+    },
+  };
+}
+
+// =====================================================================
+// Scene: Koch's home (family says hello)
+// =====================================================================
+function buildHome() {
+  const rows = mk(15, 9, [['P', 1, 7], ['K', 2, 7], ['T', 11, 1]]);
+  const lv = setupLevel({
+    rows, H: 3.0, bg: 0x120d0a, ambient: 0xffe2b8, ai: 2.5, fog: [0x120d0a, 0.02],
+    wall: T.houseWall, floor: (w, h) => T.rug(w, h), ceil: (w, h) => T.ceiling(w, h), lamps: true, lampColor: 0xffd890, lampAt: (x, y) => x % 5 === 2 && y % 4 === 2,
+  });
+  place(1, 7, -Math.PI / 2 + 0.5);
+  const g = new THREE.Group(); scene.add(g);
+  add(g, BOX(3.4, 0.9, 1.2), 0x5a3b2a, wp(4), 0.45, wp(7));                 // sofa
+  add(g, BOX(3.4, 0.7, 0.3), 0x4a2f20, wp(4), 1.2, wp(7) + 0.5);
+  add(g, BOX(2.0, 1.1, 0.5), 0x222222, wp(7), 0.55, S + 0.4);                // TV stand
+  add(g, BOX(1.6, 0.9, 0.08), glow(0x2a4a6a), wp(7), 1.35, S + 0.4);
+  add(g, BOX(1.8, 0.1, 1.0), 0x7a5a3a, wp(8), 0.7, wp(5)); add(g, BOX(0.12, 0.7, 0.12), 0x5a3b2a, wp(8), 0.35, wp(5));
+  const photo = add(g, new THREE.PlaneGeometry(1.6, 1.0), new THREE.MeshBasicMaterial({ map: ctex(256, 160, (c, w, h) => { c.fillStyle = '#c9b48a'; c.fillRect(0, 0, w, h); c.fillStyle = '#222'; c.font = 'bold 26px Arial'; c.textAlign = 'center'; c.fillText('СЕМЬЯ КОЧ', w / 2, h / 2); }) }), wp(3), 1.8, S + 0.03);
+  const wcDoor = add(g, new THREE.PlaneGeometry(1.5, 2.3), 0x7fd0c0, wp(11), 1.15, S + 0.03);
+  const wc = labelSprite('WC', '#bfffee'); wc.position.set(wp(11), 2.7, S + 0.15); g.add(wc);
+  const koch = FIG.koch(); koch.position.set(wp(2), 0, wp(7)); g.add(koch);
+  const fam = FAMILY.map((n, i) => { const f = FIG.kochfam(n); f.position.set(wp(6 + i * 1.3), 0, wp(4)); g.add(f); return f; });
+
+  let greeted = false, wcOpen = false, busy = false;
+  return {
+    cells: lv.cells,
+    interactables: [{
+      x: 11.5, y: 1.5, r: 2.2,
+      label: () => (wcOpen ? 'E — зайти в туалет' : 'Сначала поздоровайся с семьёй'),
+      use() { if (!wcOpen || busy) return; busy = true; audio.door(); next(); },
+    }],
+    begin() { say('Дом Коча. Тут вся его семья.', 3.5); },
+    update(dt) {
+      koch.rotation.y = Math.atan2(player.x - koch.position.x / S, player.y - koch.position.z / S);
+      for (const f of fam) { faceToward(f, player.x * S, player.y * S); f.position.y = Math.abs(Math.sin(gameTime * 2 + f.position.x)) * 0.04; }
+      if (!greeted && fam.some((f) => Math.hypot(player.x - f.position.x / S, player.y - f.position.z / S) < 5)) {
+        greeted = true;
+        speak('Привет!');
+        const my = sid;
+        (async () => {
+          await say('Семья Коч хором: «ПРИВЕТ!!!»', 3); if (!alive(my)) return;
+          await say('Коч: Это моя семья. Пошли, покажу кое-что в туалете. Там странное.', 4.5);
+          wcOpen = true;
+        })();
+      }
+    },
+  };
+}
+
+// =====================================================================
+// Scene: toilet
+// =====================================================================
+function buildToilet() {
+  const rows = mk(5, 5, [['P', 2, 3], ['W', 2, 1]]);
+  const lv = setupLevel({
+    rows, H: 2.8, bg: 0x0a100d, ambient: 0xe6fff0, ai: 2.4, fog: [0x0a100d, 0.03],
+    wall: () => T.tile(1, 1), floor: (w, h) => T.tile(w, h), ceil: (w, h) => T.ceiling(w, h), lamps: true, lampColor: 0xdfffe9, lampAt: (x, y) => x === 2 && y === 2,
+  });
+  place(2, 3, 0);
+  const g = new THREE.Group(); scene.add(g);
+  const tx = wp(2), tz = S + 0.6;
+  add(g, BOX(0.7, 0.4, 0.8), 0xf4f4f4, tx, 0.2, tz);
+  add(g, new THREE.CylinderGeometry(0.34, 0.26, 0.3, 14), 0xffffff, tx, 0.55, tz + 0.05);
+  const water = add(g, new THREE.CylinderGeometry(0.27, 0.27, 0.02, 14), glow(0xd6e86a), tx, 0.69, tz + 0.05);
+  add(g, BOX(0.7, 0.8, 0.25), 0xf4f4f4, tx, 0.95, tz - 0.38);
+  const bowlLight = new THREE.PointLight(0xe8e060, 10, 6, 2); bowlLight.position.set(tx, 1.0, tz + 0.3); scene.add(bowlLight);
+  const koch = FIG.koch(); koch.position.set(wp(3), 0, wp(2)); g.add(koch);
+  let busy = false;
+  return {
+    cells: lv.cells,
+    interactables: [{
+      x: 2.5, y: 1.9, r: 1.9, label: 'E — заглянуть в унитаз',
+      use() {
+        if (busy) return; busy = true;
+        const my = sid; player.frozen = true;
+        (async () => {
+          await say('Коч: Ближе, ближе... Не бойся!', 2.5); if (!alive(my)) return;
+          await say('Вода светится жёлтым. Пол уходит из-под ног…', 2.5); if (!alive(my)) return;
+          next({ color: '#e8d36a', ms: 500 });
+        })();
+      },
+    }],
+    begin() { say('Коч: Вот наш туалет. Подойди к унитазу — увидишь.', 4); },
+    update(dt) {
+      koch.rotation.y = Math.atan2(player.x - koch.position.x / S, player.y - koch.position.z / S);
+      water.material.color.setHSL(0.17, 0.8, 0.55 + Math.sin(gameTime * 4) * 0.1);
+      bowlLight.intensity = 9 + Math.sin(gameTime * 5) * 3;
+      if (busy) { player.pitch += (-0.9 - player.pitch) * Math.min(1, dt * 2); }
+    },
+  };
+}
+
+// =====================================================================
+// Scene: the fall
+// =====================================================================
+function buildFall() {
+  clearScene();
+  scene.background = new THREE.Color(0x05050a);
+  scene.fog = new THREE.FogExp2(0x05050a, 0.018);
+  scene.add(new THREE.AmbientLight(0xffffff, 2.2));
+  const g = new THREE.Group(); scene.add(g);
+  const colors = [0x28e0ff, 0xff3ca0, 0xe8d36a, 0x7a5cff];
+  for (let i = 0; i < 40; i++) {
+    const ring = add(g, new THREE.TorusGeometry(9, 0.18, 6, 32), glow(colors[i % 4]), 0, -10 - i * 8, 0);
+    ring.rotation.x = Math.PI / 2;
+  }
+  const junk = [];
+  const makers = [
+    () => { const o = new THREE.Group(); add(o, BOX(0.8, 0.5, 0.9), 0xf4f4f4, 0, 0, 0); add(o, new THREE.CylinderGeometry(0.3, 0.25, 0.4, 10), 0xffffff, 0, 0.4, 0); return o; },
+    () => { const o = new THREE.Group(); add(o, BOX(1.2, 0.08, 0.7), 0x8a5a2b, 0, 0.7, 0); add(o, BOX(0.08, 0.7, 0.08), 0x5a3b2a, -0.5, 0.35, 0); return o; },
+    () => { const o = new THREE.Group(); add(o, BOX(0.9, 0.7, 0.4), 0x222222, 0, 0, 0); add(o, BOX(0.8, 0.6, 0.02), new THREE.MeshBasicMaterial({ map: ctex(128, 96, drawCS) }), 0, 0, 0.21); return o; },
+    () => FIG.koch(),
+    () => FIG.teacher(),
+    () => FIG.standofer(),
+    () => { const o = new THREE.Group(); add(o, BOX(0.6, 0.06, 0.8), 0xb0202a, 0, 0, 0); return o; },
+  ];
+  for (let i = 0; i < 70; i++) {
+    const o = makers[i % makers.length]();
+    const a = Math.random() * Math.PI * 2, r = 2.5 + Math.random() * 5;
+    o.position.set(Math.cos(a) * r, -12 - Math.random() * 280, Math.sin(a) * r);
+    o.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+    o.userData.spin = [Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5];
+    g.add(o); junk.push(o);
+  }
+  const ground = add(scene, new THREE.PlaneGeometry(200, 200), new THREE.MeshLambertMaterial({ map: T.carpet(40, 40) }), 0, -290, 0);
+  ground.rotation.x = -Math.PI / 2;
+  const DUR = 12;
+  let t = 0, fin = false;
+  const subs = [[0.3, 'ААААААААА!!!', 2.5], [3, 'Это точно не канализация…', 2.8], [6, 'Мама, я хочу домой!', 2.8], [9, 'Почему пахнет мокрым ковром?..', 2.5], [11, 'СЕЙЧАС РАЗОБЬЁМСЯ!!!', 1.2]];
+  let si = 0;
+  player.frozen = true; $('vig').classList.remove('on');
+  return {
+    freeCamera: true, cells: null, interactables: [],
+    begin(my) {
+      audio.hum(false); audio.fall(DUR); audio.lowpass(true);
+    },
+    update(dt) {
+      t += dt;
+      const y = 6 * t + 1.5 * t * t;
+      camera.position.set(Math.sin(t * 0.9) * 0.8, -y, Math.cos(t * 0.7) * 0.8);
+      camera.rotation.set(-1.15 + Math.sin(t) * 0.15, t * 0.7, Math.sin(t * 0.8) * 0.4);
+      camera.fov = 70 + t * 3.2; camera.updateProjectionMatrix();
+      for (const o of junk) { o.rotation.x += o.userData.spin[0] * dt; o.rotation.y += o.userData.spin[1] * dt; o.rotation.z += o.userData.spin[2] * dt; }
+      if (t > 8) scene.fog.color.lerp(new THREE.Color(0x2b2610), dt * 0.5);
+      while (si < subs.length && t >= subs[si][0]) { say(subs[si][1], subs[si][2]); si++; }
+      if (t >= DUR && !fin) {
+        fin = true;
+        audio.lowpass(false); camera.fov = 75; camera.updateProjectionMatrix();
+        audio.thud();
+        next({ color: '#ffffff', ms: 250 });
+      }
+    },
+  };
+}
+
+// =====================================================================
+// Levels: 0 yellow backrooms, 1 indoor corridors with windows, 2 poolrooms
+// =====================================================================
+const DARK_TEXT = 'СВЕТ ВЫРУБИЛСЯ';
+const HINTS_ZONE = { pcroom: 'Компы… и на всех CS 1.6?! Кто-то тут рубится.', class: 'Класс… и училка. Только бы не заметила.', koch: 'Это же дом Коча?! Но тут одни Кочи…' };
+const SHOUTS = {
+  teacher: ['СЕЛ НА МЕСТО!! Где дневник?!', 'Двойка в четверти!', 'Родителей в школу!'],
+  standofer: ['ЗАЛЕТАЙ В СТАНДОФФ!', 'Дай скин, лох!', 'Ты нуб, го 1 на 1!'],
+  kochfam: ['Ты чё в нашем доме?!', 'Привет-привет-привет…', 'Сынок, иди кушать!'],
+};
+const NAMES = { teacher: 'Училка', standofer: 'Стендофер' };
+
+Object.assign(T, {
+  corridorWall: () => ctex(128, 128, (g, w, h) => {
+    g.fillStyle = '#b9b4c4'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#6d6a80'; g.fillRect(0, h * 0.62, w, h * 0.38);                 // painted wainscot
+    g.fillStyle = '#4f4c60'; g.fillRect(0, h * 0.62, w, 3);
+    g.fillStyle = '#d8d4e0'; g.fillRect(16, 18, 96, 62);                              // window frame
+    g.fillStyle = '#16202e'; g.fillRect(20, 22, 88, 54);                              // night outside
+    g.fillStyle = '#d8d4e0'; g.fillRect(63, 22, 3, 54); g.fillRect(20, 47, 88, 3);
+    g.fillStyle = 'rgba(230,198,138,0.10)'; g.fillRect(20, 22, 88, 54);
+    speckle(g, w, h, 400, ['#aeaabb', '#c4c0d0']);
+  }),
+  poolTile: (rx, ry) => ctex(128, 128, (g, w, h) => {
+    g.fillStyle = '#e9efee'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = '#b4c2c4'; g.lineWidth = 1;
+    for (let i = 0; i <= 8; i++) { g.beginPath(); g.moveTo(i * w / 8, 0); g.lineTo(i * w / 8, h); g.moveTo(0, i * h / 8); g.lineTo(w, i * h / 8); g.stroke(); }
+    speckle(g, w, h, 150, ['#dde6e5', '#f4f9f8']);
+  }, rx, ry),
+  caustic: () => ctex(128, 128, (g, w, h) => {
+    g.fillStyle = '#2fb3a0'; g.fillRect(0, 0, w, h);
+    for (let i = 0; i < 40; i++) { g.fillStyle = 'rgba(160,255,230,0.18)'; g.beginPath(); g.ellipse(Math.random() * w, Math.random() * h, 5 + Math.random() * 12, 2 + Math.random() * 5, Math.random() * 3, 0, 7); g.fill(); }
+  }),
+});
+
+const STYLE = [
+  { H: 3.2, bg: 0x2b2610, ambient: 0xfff0a0, ai: 1.7, fog: [0x2b2610, 0.05], wall: T.wallpaper, floor: (w, h) => T.carpet(w, h), ceil: (w, h) => T.ceiling(w, h),
+    lamps: true, lampAt: (x, y) => x % 4 === 1 && y % 4 === 1, lampRGB: [1, 0.95, 0.68], light: [0xffe9a0, 4, 12], hum: true },
+  { H: 3.4, bg: 0x1d1b26, ambient: 0xd8d0f0, ai: 1.6, fog: [0x1d1b26, 0.045], wall: () => T.corridorWall(), floor: (w, h) => T.schoolFloor(w, h), ceil: (w, h) => T.ceiling(w, h),
+    lamps: true, lampAt: (x, y) => x % 4 === 2 && y % 4 === 2, lampRGB: [0.85, 0.92, 1], light: [0xdde6ff, 4, 12], hum: true },
+  { H: 5, bg: 0xd5e4e4, ambient: 0xf0fbff, ai: 2.0, fog: [0xd5e4e4, 0.028], wall: () => T.poolTile(1, 2), floor: (w, h) => T.poolTile(w, h), ceil: (w, h) => T.poolTile(w, h),
+    lamps: true, lampColor: 0xfffbe6, lampAt: (x, y) => x % 3 === 1 && y % 3 === 1, lampRGB: [1, 1, 0.9], light: [0xfff0c0, 3, 12], hum: true },
+];
+
+function glowSprite(color) {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 2, 32, 32, 32);
+  gr.addColorStop(0, color); gr.addColorStop(1, 'rgba(0,0,0,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false }));
+  s.scale.set(1.6, 1.6, 1);
+  return s;
+}
+
+function makeItemMesh(level) {
+  const o = new THREE.Group();
+  if (level === 0) {            // fuse
+    add(o, new THREE.CylinderGeometry(0.09, 0.09, 0.4, 10), new THREE.MeshBasicMaterial({ color: 0xffe36a }), 0, 0, 0);
+    add(o, new THREE.CylinderGeometry(0.11, 0.11, 0.08, 10), 0x777777, 0, 0.22, 0);
+    add(o, new THREE.CylinderGeometry(0.11, 0.11, 0.08, 10), 0x777777, 0, -0.22, 0);
+    o.add(glowSprite('rgba(255,230,120,0.9)'));
+  } else if (level === 1) {     // key card
+    add(o, BOX(0.5, 0.32, 0.03), new THREE.MeshBasicMaterial({ color: 0x9dffbf }), 0, 0, 0);
+    add(o, BOX(0.5, 0.06, 0.035), 0x1d6a3a, 0, 0.08, 0);
+    o.add(glowSprite('rgba(140,255,190,0.9)'));
+  } else {                      // valve
+    const t = add(o, new THREE.TorusGeometry(0.2, 0.035, 8, 16), 0xd03030, 0, 0, 0);
+    add(o, BOX(0.4, 0.04, 0.04), 0xd03030, 0, 0, 0); add(o, BOX(0.04, 0.4, 0.04), 0xd03030, 0, 0, 0);
+    add(o, new THREE.CylinderGeometry(0.04, 0.04, 0.2, 8), 0x888888, 0, 0, -0.1).rotation.x = Math.PI / 2;
+    o.add(glowSprite('rgba(255,120,120,0.9)'));
+  }
+  return o;
+}
+
+function shadowTex() {
+  return ctex(64, 128, (g, w, h) => {
+    g.fillStyle = '#e6c68a'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#0a0a0e'; g.beginPath(); g.arc(w / 2, 38, 14, 0, 7); g.fill();
+    g.fillRect(w / 2 - 16, 50, 32, 80);
+  });
+}
+
+let itemsHudText = '';
+function setItemsHud(t) { itemsHudText = t; const el = $('items'); el.style.display = t ? 'block' : 'none'; el.textContent = t; }
+
+function buildLevelScene() {
+  const level = story.level, cfg = L.LEVELS[level], st = STYLE[level];
+  const guest = net.role === 'guest';
+  const world = L.generateLevel(level, seed + level * 977);
+  const collide = world.cells.map((r) => r.slice());
+  const pillarSet = new Set((world.pillars || []).map((p) => `${p.x},${p.y}`));
+  const renderCells = pillarSet.size ? world.cells.map((r, y) => r.map((v, x) => (pillarSet.has(`${x},${y}`) ? 1 : v))) : world.cells;
+  const lv = setupLevel({ ...st, cells: world.cells, renderCells });
+  const amb = scene.children.find((o) => o.isAmbientLight);
+  const g = new THREE.Group(); scene.add(g);
+  const reserved = new Set([`${world.spawn.x},${world.spawn.y}`, `${world.exit.x},${world.exit.y}`]);
+  [...world.hideSpots, ...world.enemySpawns, ...world.items].forEach((p) => reserved.add(`${p.x},${p.y}`));
+  const countReach = () => { const d = L.bfs(collide, world.spawn); let n = 0; d.forEach((r) => r.forEach((v) => { if (v >= 0) n++; })); return n; };
+  function trySolid(x, y) {
+    if (reserved.has(`${x},${y}`) || collide[y][x] !== 1) return false;
+    const before = countReach();
+    collide[y][x] = 0;
+    if (countReach() < before - 1) { collide[y][x] = 1; return false; }
+    return true;
+  }
+  pillarSet.forEach((k) => { const [x, y] = k.split(',').map(Number); collide[y][x] = 0; });
+  const inWaterAt = (x, y) => !!(world.water && world.water[Math.floor(y)] && world.water[Math.floor(y)][Math.floor(x)]);
+
+  // ---------- per-level decor ----------
+  const pcs = [];
+  const shots = ['Хэдшот! Ты убил Коча с AWP.', 'Тебя убила училка с ножа.', 'Terrorists Win!', 'CT win! Все Кочи мертвы.', 'Rush B! Rush B! RUSH B!!!', 'Кто-то кричит «стендофф лучше»…'];
+  const faces = [];
+  if (world.kind === 'yellow') {
+    const room = (n) => world.rooms.find((r) => r.name === n);
+    const cr = room('class'), pr = room('pcroom'), kr = room('koch');
+    const tint = (r, color) => { const p = add(g, new THREE.PlaneGeometry(5 * S, 5 * S), color, wp(r.x0 + 2), 0.02, wp(r.y0 + 2)); p.rotation.x = -Math.PI / 2; };
+    tint(cr, new THREE.MeshLambertMaterial({ map: T.lino(5, 5) }));
+    tint(pr, new THREE.MeshLambertMaterial({ map: T.pcCarpet(5, 5) }));
+    tint(kr, new THREE.MeshLambertMaterial({ map: T.rug(5, 5) }));
+    for (const [dx, dy] of [[1, 1], [3, 1], [1, 3], [3, 3]]) {
+      const x = cr.x0 + dx, y = cr.y0 + dy;
+      if (trySolid(x, y)) { add(g, BOX(1.3, 0.08, 0.8), 0x8a5a2b, wp(x), 0.75, wp(y)); add(g, BOX(0.08, 0.75, 0.08), 0x5a3b2a, wp(x) - 0.55, 0.37, wp(y)); add(g, BOX(0.08, 0.75, 0.08), 0x5a3b2a, wp(x) + 0.55, 0.37, wp(y)); add(g, BOX(0.5, 0.5, 0.5), 0x4a4a52, wp(x), 0.3, wp(y) + 0.7); }
+    }
+    if (trySolid(cr.x0 + 2, cr.y0)) {
+      add(g, BOX(2.2, 1.3, 0.1), new THREE.MeshBasicMaterial({ map: ctex(256, 128, (c, w, h) => { c.fillStyle = '#1f4a34'; c.fillRect(0, 0, w, h); c.fillStyle = '#eee'; c.font = 'bold 24px Arial'; c.textAlign = 'center'; c.fillText('ТЕМА: КАК ВЫЖИТЬ', w / 2, 50); c.font = '20px Arial'; c.fillText('2 + 2 = ВЫХОД', w / 2, 90); }) }), wp(cr.x0 + 2), 1.4, wp(cr.y0));
+    }
+    const csTex = ctex(256, 192, drawCS);
+    for (const p of world.pcs) {
+      const solid = trySolid(p.x, p.y);
+      add(g, BOX(1.5, 0.08, 0.9), 0x6a6a72, wp(p.x), 0.72, wp(p.y));
+      add(g, BOX(0.08, 0.7, 0.08), 0x444444, wp(p.x) - 0.65, 0.35, wp(p.y));
+      add(g, BOX(0.08, 0.7, 0.08), 0x444444, wp(p.x) + 0.65, 0.35, wp(p.y));
+      add(g, BOX(0.8, 0.62, 0.45), 0xcfcfc4, wp(p.x), 1.1, wp(p.y) - 0.1);
+      const scr = add(g, new THREE.PlaneGeometry(0.66, 0.5), new THREE.MeshBasicMaterial({ map: csTex, color: 0x303030 }), wp(p.x), 1.12, wp(p.y) + 0.126);
+      pcs.push({ x: p.x + 0.5, y: p.y + 0.5, scr, on: false, solid });
+    }
+    if (trySolid(kr.x0 + 3, kr.y0 + 1)) { add(g, BOX(1.5, 0.1, 1.0), 0x7a5a3a, wp(kr.x0 + 3), 0.7, wp(kr.y0 + 1)); add(g, BOX(0.12, 0.7, 0.12), 0x5a3b2a, wp(kr.x0 + 3), 0.35, wp(kr.y0 + 1)); }
+    if (trySolid(kr.x0 + 1, kr.y0 + 3)) { add(g, BOX(1.8, 0.8, 1.0), 0x5a3b2a, wp(kr.x0 + 1), 0.4, wp(kr.y0 + 3)); add(g, BOX(1.8, 0.7, 0.25), 0x4a2f20, wp(kr.x0 + 1), 1.0, wp(kr.y0 + 3) - 0.45); }
+    if (trySolid(kr.x0 + 1, kr.y0 + 1)) { add(g, BOX(1.2, 0.8, 0.5), 0x222222, wp(kr.x0 + 1), 0.4, wp(kr.y0 + 1)); add(g, BOX(1.0, 0.7, 0.06), glow(0x4a6a8a), wp(kr.x0 + 1), 1.1, wp(kr.y0 + 1)); }
+  } else if (world.kind === 'corridors') {
+    world.cells.forEach((row, y) => row.forEach((v, x) => {
+      if (v !== 1) return;
+      for (const [dx, dy] of DIRS) if (world.cells[y + dy] && world.cells[y + dy][x + dx] === 0) faces.push({ x, y, dx, dy });
+    }));
+  } else if (world.kind === 'pool') {
+    const wc = [];
+    world.water.forEach((row, y) => row.forEach((v, x) => { if (v) wc.push([x, y]); }));
+    const m4 = new THREE.Matrix4();
+    const causticTex = T.caustic();
+    const wi = new THREE.InstancedMesh(new THREE.PlaneGeometry(S, S), new THREE.MeshLambertMaterial({ map: causticTex, transparent: true, opacity: 0.92 }), wc.length);
+    wc.forEach(([x, y], i) => { m4.makeRotationX(-Math.PI / 2); m4.setPosition(wp(x), 0.05, wp(y)); wi.setMatrixAt(i, m4); });
+    g.add(wi);
+    g.userData.caustic = causticTex;
+    for (const p of world.pillars) add(g, new THREE.CylinderGeometry(0.6, 0.6, st.H, 16), new THREE.MeshLambertMaterial({ map: T.poolTile(2, 2) }), wp(p.x), st.H / 2, wp(p.y));
+    for (const h of world.rooms) {               // chrome ladder at the pool edge
+      const lx = wp(h.x0 + 3), lz = wp(h.y0 + 1) - S * 0.45;
+      for (const o of [-0.25, 0.25]) { add(g, new THREE.CylinderGeometry(0.03, 0.03, 1.0, 8), 0xc8ccd0, lx + o, 0.5, lz); }
+      add(g, BOX(0.56, 0.04, 0.04), 0xc8ccd0, lx, 1.0, lz);
+    }
+  }
+
+  // hide spots: yellow lockers / school lockers and plants / changing cabins
+  const lockers = world.hideSpots.map((p, i) => {
+    if (world.kind === 'yellow') {
+      add(g, BOX(1.0, 2.0, 0.9), 0x3a5a48, wp(p.x), 1.0, wp(p.y));
+      for (let k = 0; k < 4; k++) add(g, BOX(0.6, 0.03, 0.02), 0x1a2a20, wp(p.x), 1.4 + k * 0.1, wp(p.y) + 0.46);
+    } else if (world.kind === 'corridors') {
+      if (i % 2) {                                   // potted plant
+        add(g, new THREE.CylinderGeometry(0.45, 0.35, 0.7, 12), 0x8a5a3a, wp(p.x), 0.35, wp(p.y));
+        for (const [ox, oy, r] of [[-0.3, 0, 0.5], [0.3, 0, 0.5], [0, 0.1, 0.6]]) add(g, new THREE.SphereGeometry(r, 10, 8), 0x2f5a2f, wp(p.x) + ox, 1.15, wp(p.y) + oy);
+      } else {                                       // school locker
+        add(g, BOX(1.0, 2.0, 0.9), 0x4a6a8a, wp(p.x), 1.0, wp(p.y));
+        for (let k = 0; k < 4; k++) add(g, BOX(0.6, 0.03, 0.02), 0x1a2a3a, wp(p.x), 1.4 + k * 0.1, wp(p.y) + 0.46);
+      }
+    } else {
+      add(g, BOX(1.1, 2.4, 1.0), 0xf2f2ea, wp(p.x), 1.2, wp(p.y));
+      add(g, BOX(0.8, 1.9, 0.04), 0x4aa8d8, wp(p.x), 1.1, wp(p.y) + 0.52);
+    }
+    return { x: p.x + 0.5, y: p.y + 0.5 };
+  });
+
+  // items
+  const progress = L.createProgress(cfg.itemsNeeded);
+  const itemMeshes = world.items.map((p) => { const m = makeItemMesh(level); m.position.set(wp(p.x), 0.9, wp(p.y)); g.add(m); return m; });
+  const hudText = () => `${cfg.itemName}: ${progress.count()}/${cfg.itemsNeeded}`;
+  setItemsHud(hudText());
+  function collectItem(id) {
+    if (!progress.collect(id)) return false;
+    setItemsHud(hudText()); audio.pickup();
+    if (progress.ready()) say(`Всё собрано (${cfg.itemsNeeded}/${cfg.itemsNeeded})! Выход открыт — беги к двери!`, 4);
+    else say(`Нашёл: ${cfg.itemName} ${progress.count()}/${cfg.itemsNeeded}`, 2.5);
+    return true;
+  }
+
+  // exit door
+  const ex = world.exit;
+  const exitG = new THREE.Group(); g.add(exitG);
+  const wallDir = DIRS.find(([dx, dy]) => world.cells[ex.y + dy][ex.x + dx] === 0) || [0, -1];
+  exitG.position.set(wp(ex.x) + wallDir[0] * S * 0.42, 0, wp(ex.y) + wallDir[1] * S * 0.42);
+  exitG.rotation.y = Math.atan2(-wallDir[0], -wallDir[1]);
+  add(exitG, BOX(1.5, 2.5, 0.12), 0x1a1a1a, 0, 1.25, 0);
+  const doorGlow = new THREE.MeshBasicMaterial({ color: 0x802020 });
+  add(exitG, BOX(1.2, 2.2, 0.14), doorGlow, 0, 1.15, 0.01);
+  const exitSign = labelSprite('ВЫХОД', '#7dffa6'); exitSign.position.set(0, 2.95, 0.3); exitG.add(exitSign);
+  const exitLight = new THREE.PointLight(0xff6060, 14, 12, 2); exitLight.position.set(0, 1.6, 0.8); exitG.add(exitLight);
+
+  const playerLight = new THREE.PointLight(st.light[0], st.light[1], st.light[2], 2); scene.add(playerLight);
+
+  // enemies
+  const enemies = [];
+  let famIdx = 0;
+  function spawnEnemies() {
+    enemies.forEach((e) => g.remove(e.mesh));
+    enemies.length = 0;
+    famIdx = 0;
+    for (const sp of world.enemySpawns) {
+      const logic = L.makeEnemy(sp);
+      const mesh = sp.type === 'kochfam' ? FIG.kochfam(FAMILY[famIdx++ % 4]) : FIG[sp.type]();
+      g.add(mesh);
+      enemies.push({ logic, mesh, name: sp.type === 'kochfam' ? mesh.userData.name : NAMES[sp.type], px: logic.x, py: logic.y, prev: 'patrol' });
+    }
+  }
+  spawnEnemies();
+  const rng = L.makeRng(seed + 7 + level);
+
+  const open = [[1, 0], [0, 1], [-1, 0], [0, -1]].find(([dx, dy]) => world.cells[world.spawn.y + dy][world.spawn.x + dx] === 1) || [1, 0];
+  const spawnYaw = Math.atan2(-open[0], -open[1]);
+  place(world.spawn.x, world.spawn.y, spawnYaw);
+  $('stam').style.display = 'block';
+  setItemsHud(hudText());
+
+  let exitFlag = false, shoutCD = 0, lock = false;
+  const seen = new Set();
+  const noises = [];
+  const closedMsg = () => `Выход закрыт: найди ещё ${cfg.itemsNeeded - progress.count()} (${cfg.itemName})`;
+  const interactables = [
+    ...lockers.map((l) => ({ x: l.x, y: l.y, r: 1.3, label: () => (player.hidden ? 'E — вылезти' : 'E — спрятаться'), use() { toggleHide(l); }, hide: true })),
+    ...pcs.map((p) => ({
+      x: p.x, y: p.y, r: 1.6, label: () => (p.on ? 'E — стрельнуть' : 'E — включить комп'),
+      use() { if (!p.on) { p.on = true; p.scr.material.color.setHex(0xffffff); audio.shot(); } else { audio.shot(); } say(shots[(Math.random() * shots.length) | 0], 3); },
+    })),
+    ...world.items.map((p, id) => ({ x: p.x + 0.5, y: p.y + 0.5, r: 1.5, label: `E — взять: ${cfg.itemName}`, active: () => !progress.got.has(id), use() { if (guest) net.send({ type: 'act', kind: 'item', id }); else collectItem(id); } })),
+    { x: ex.x + 0.5, y: ex.y + 0.5, r: 1.6, label: () => (progress.ready() ? 'E — открыть выход' : closedMsg()),
+      use() { if (!progress.ready()) say('Дверь заперта. ' + closedMsg(), 3, true); else if (guest) net.send({ type: 'act', kind: 'exit' }); else exitFlag = true; } },
+  ];
+  function toggleHide(l) {
+    if (player.hidden) { player.hidden = false; player.frozen = false; $('vig').classList.remove('on'); }
+    else { player.hidden = true; player.frozen = true; player.x = l.x; player.y = l.y; $('vig').classList.add('on'); }
+  }
+
+  async function onCaught(reset = true) {
+    lock = true; const my = sid;
+    audio.caught(); player.frozen = true; $('vig').classList.remove('on');
+    bigMsg('ТЕБЯ ПОЙМАЛИ', 1800); fade(0.85, '#400');
+    await sleep(1800); if (!alive(my)) return;
+    place(world.spawn.x, world.spawn.y, spawnYaw);
+    $('stam').style.display = 'block'; setItemsHud(hudText());
+    if (reset && !guest) spawnEnemies();
+    player.stamina = 1; player.tired = false;
+    fade(0); lock = false; say(guest ? 'Тебя поймали! Враги сбросились, ищи дальше!' : `Попытка ${story.deaths + 1}. Враги сбросились, ищи дальше!`, 3.5, true);
+  }
+
+  // events
+  let evT = guest ? 1e9 : 45 + Math.random() * 25, dark = 0, shadowT = guest ? 1e9 : 12 + Math.random() * 10;
+  let gPrev = null, gStep = 0;
+  let shadow = null;
+  function windowShadow() {
+    const cand = faces.filter((f) => { const d = Math.hypot(f.x + 0.5 - player.x, f.y + 0.5 - player.y); return d > 4 && d < 11; });
+    if (!cand.length) return;
+    const f = cand[(Math.random() * cand.length) | 0];
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 1.6), new THREE.MeshBasicMaterial({ map: shadowTex(), fog: false }));
+    m.position.set(wp(f.x) + f.dx * (S / 2 - 0.02), 1.9, wp(f.y) + f.dy * (S / 2 - 0.02));
+    m.rotation.y = Math.atan2(-f.dx, -f.dy);
+    g.add(m);
+    shadow = { m, t: 3.5 };
+    audio.sting();
+    if (Math.random() < 0.5) say('В окне кто-то стоит…', 2.5);
+  }
+
+  return {
+    cells: collide, interactables, world, progress, level, enemies,
+    inWater: inWaterAt,
+    netCaught() { onCaught(false); },
+    netDark() { dark = 5; audio.sting(); },
+    onAct(m) {
+      const gq = net.remote.pos;
+      if (!gq || lock) return;
+      if (m.kind === 'item') { const q = world.items[m.id]; if (q && Math.hypot(gq.x - q.x - 0.5, gq.y - q.y - 0.5) < 2.8) collectItem(m.id); }
+      else if (m.kind === 'exit' && progress.ready() && Math.hypot(gq.x - ex.x - 0.5, gq.y - ex.y - 0.5) < 2.8) exitFlag = true;
+    },
+    noise: (x, y) => { if (cfg.hear) noises.push({ x, y, r: cfg.hear }); },
+    begin(my) {
+      audio.lowpass(false); audio.hum(st.hum);
+      (async () => {
+        if (level === 0) {
+          await say('Ты упал… Жёлтые обои, гул ламп. Где я?!', 4); if (!alive(my)) return;
+          await say(`Выход закрыт. Найди 3 ${cfg.itemName}а. E — взять, E у шкафов — спрятаться, Shift — бежать.`, 6);
+        } else {
+          bigMsg(cfg.name, 2800);
+          await say(level === 1 ? 'Длинные коридоры, окна в ночь… Кто-то стоит за стеклом.' : 'Белая плитка, бассейны. Вода замедляет и плещет — враги услышат.', 4.5); if (!alive(my)) return;
+          await say(`Найди 3 ${level === 1 ? 'ключ-карты' : 'вентиля'}, чтобы открыть выход.`, 4.5);
+        }
+      })();
+    },
+    update(dt) {
+      if (lock) return;
+      playerLight.position.set(player.x * S, Math.min(2.2, st.H - 0.5), player.y * S);
+
+      // level events
+      if (level === 0) {
+        evT -= dt;
+        if (evT <= 0 && dark <= 0) { dark = 5; evT = 55 + Math.random() * 35; audio.sting(); say(DARK_TEXT + '!.. Не шуми.', 3); }
+        if (dark > 0) dark -= dt;
+      } else if (level === 1) {
+        shadowT -= dt;
+        if (shadowT <= 0 && !shadow) { shadowT = 18 + Math.random() * 14; windowShadow(); }
+        if (shadow) { shadow.t -= dt; if (shadow.t <= 0) { g.remove(shadow.m); shadow = null; } }
+      } else if (g.userData.caustic) {
+        g.userData.caustic.offset.x += dt * 0.03; g.userData.caustic.offset.y += dt * 0.02;
+      }
+      if (lv.lampMat) {
+        const f = dark > 0 ? 0.04 : 0.82 + 0.1 * Math.sin(gameTime * 31) * Math.sin(gameTime * 7) + (level === 0 && Math.sin(gameTime * 1.3) > 0.97 ? -0.4 : 0);
+        const c = st.lampRGB;
+        lv.lampMat.color.setRGB(c[0] * f, c[1] * f, c[2] * f);
+      }
+      amb.intensity = dark > 0 ? 0.4 : st.ai;
+      const ready = progress.ready();
+      doorGlow.color.setHex(ready ? 0xc8ffd8 : 0x802020);
+      exitLight.color.setHex(ready ? 0x7dffa6 : 0xff6060);
+      exitLight.intensity = 14 + Math.sin(gameTime * 3) * 5;
+      itemMeshes.forEach((m, i) => { m.visible = !progress.got.has(i); m.rotation.y += dt * 1.5; m.position.y = 0.9 + Math.sin(gameTime * 2 + i) * 0.08; });
+
+      const pls = [{ x: player.x, y: player.y, hidden: player.hidden }];
+      const gp = !guest && net.remote.pos;
+      if (gp) {
+        pls.push(gp);
+        if (cfg.hear && inWaterAt(gp.x, gp.y) && gPrev) {
+          gStep += Math.hypot(gp.x - gPrev.x, gp.y - gPrev.y);
+          if (gStep > 0.9) { gStep = 0; noises.push({ x: gp.x, y: gp.y, r: cfg.hear }); }
+        }
+        gPrev = { x: gp.x, y: gp.y };
+      } else gPrev = null;
+      const opts = { sight: cfg.sight, speedMul: cfg.speedMul, noises };
+      let caught = false, guestCaught = false, danger = 0;
+      shoutCD -= dt;
+      if (guest && net.snap) {
+        const had = progress.count();
+        progress.fromArray(net.snap.it);
+        if (progress.count() !== had) { setItemsHud(hudText()); if (progress.count() > had) audio.pickup(); }
+      }
+      for (const [i, e] of enemies.entries()) {
+        if (guest) {
+          const m = net.snap && net.snap.en[i];
+          if (m) {
+            const far = Math.hypot(m[0] - e.logic.x, m[1] - e.logic.y) > 4, k = far ? 1 : Math.min(1, dt * 12);
+            e.logic.x += (m[0] - e.logic.x) * k; e.logic.y += (m[1] - e.logic.y) * k;
+            e.logic.state = ['patrol', 'chase', 'search'][m[2]];
+          }
+        } else L.stepEnemy(collide, e.logic, pls, dt, rng, opts);
+        const lg = e.logic;
+        e.mesh.position.set(lg.x * S, Math.abs(Math.sin(gameTime * 6 + lg.x)) * 0.03, lg.y * S);
+        const vx = lg.x - e.px, vy = lg.y - e.py;
+        const moving = Math.hypot(vx, vy) > 1e-4;
+        if (moving) {
+          const target = Math.atan2(vx, vy);
+          let d = target - e.mesh.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
+          e.mesh.rotation.y += d * Math.min(1, dt * 8);
+        }
+        e.px = lg.x; e.py = lg.y;
+        animateFigure(e.mesh, gameTime, moving, lg.state === 'chase');
+        const red = lg.state === 'chase';
+        e.mesh.userData.eyeMats.forEach((m) => m.color.setHex(red ? 0xff1010 : 0x111111));
+        if (lg.state === 'chase' && e.prev !== 'chase' && shoutCD <= 0) {
+          shoutCD = 3.5; audio.sting();
+          const arr = SHOUTS[lg.type]; say(`${e.name}: ${arr[(Math.random() * arr.length) | 0]}`, 2.6);
+        }
+        e.prev = lg.state;
+        const d = Math.hypot(player.x - lg.x, player.y - lg.y);
+        if (lg.state === 'chase') danger = Math.max(danger, 1 - Math.min(1, d / 8));
+        if (!guest) { const ci = L.isCaughtAny(lg, pls); if (ci === 0) caught = true; else if (ci === 1) guestCaught = true; }
+      }
+      noises.length = 0;
+      audio.danger(danger);
+      const dEx = Math.hypot(player.x - ex.x - 0.5, player.y - ex.y - 0.5);
+      audio.exitProx(ready ? Math.max(0, 1 - dEx / 14) : 0);
+
+      if (world.kind === 'yellow') {
+        const zone = world.zones[Math.floor(player.y)] && world.zones[Math.floor(player.y)][Math.floor(player.x)];
+        if (HINTS_ZONE[zone] && !seen.has(zone)) { seen.add(zone); say(HINTS_ZONE[zone], 3.5); }
+      }
+
+      if (guest) return;
+      if (guestCaught && !caught) {
+        net.send({ type: 'caught', who: 'guest' }); story.resolve({ caught: true }); spawnEnemies();
+        say('Коча поймали! Враги сбросились.', 3);
+      }
+      const before = story.level;
+      const stt = story.resolve({ caught, atExit: exitFlag });
+      exitFlag = false;
+      if (stt === story.finale || story.level !== before) {
+        lock = true; audio.door(); audio.danger(0); audio.exitProx(0);
+        $('stam').style.display = 'none'; setItemsHud('');
+        if (stt === story.finale) audio.hum(false);
+        enterState({ color: '#ffffff', ms: 900 });
+      } else if (caught) { onCaught(); net.send({ type: 'caught', who: 'host' }); }
+    },
+  };
+}
+
+// =====================================================================
+// Scene: asylum (the ending)
+// =====================================================================
+function buildAsylum() {
+  const rows = mk(9, 9, []);
+  const lv = setupLevel({
+    rows, H: 3.0, bg: 0xdfe8f0, ambient: 0xe8f0ff, ai: 2.6, fog: [0xdfe8f0, 0.02],
+    wall: T.padded, floor: (w, h) => T.lino(w, h), ceil: (w, h) => T.tile(w, h), lamps: true, lampColor: 0xe8f4ff, lampAt: (x, y) => x === 4 && y === 4,
+  });
+  place(3, 4, -Math.PI / 2);
+  const g = new THREE.Group(); scene.add(g);
+  add(g, BOX(2.2, 0.5, 1.2), 0x8a8a90, wp(3), 0.3, wp(4));                     // bed frame
+  add(g, BOX(2.1, 0.2, 1.1), 0xf4f4f4, wp(3), 0.65, wp(4));                    // mattress
+  add(g, BOX(0.5, 0.15, 0.9), 0xffffff, wp(3) - 0.75, 0.8, wp(4));             // pillow
+  const win = add(g, new THREE.PlaneGeometry(1.8, 1.4), glow(0x23304a), wp(4), 1.7, S + 0.03);
+  for (let i = -2; i <= 2; i++) add(g, BOX(0.05, 1.4, 0.05), 0x333333, wp(4) + i * 0.35, 1.7, S + 0.06);
+  const door = add(g, new THREE.PlaneGeometry(1.4, 2.3), 0x9aa0a4, wp(4), 1.15, 8 * S - 0.03); door.rotation.y = Math.PI;
+  add(g, BOX(0.4, 0.5, 0.3), 0x222222, wp(1), 1.0, wp(2));                     // monitor on stand
+  const mon = add(g, new THREE.PlaneGeometry(0.34, 0.2), glow(0x103010), wp(1), 1.05, wp(2) + 0.16);
+  const board = add(g, new THREE.PlaneGeometry(1.3, 0.9), new THREE.MeshBasicMaterial({ map: ctex(256, 180, (c, w, h) => { c.fillStyle = '#f0f0e8'; c.fillRect(0, 0, w, h); c.fillStyle = '#222'; c.font = 'bold 20px Arial'; c.textAlign = 'center'; c.fillText('ПАЦИЕНТ: ПСИХОПАТ', w / 2, 40); c.font = '16px Arial'; c.fillText('Диагноз: видения', w / 2, 80); c.fillText('(бекрумс, школа, Коч)', w / 2, 110); }) }), wp(7), 1.7, S + 0.03);
+
+  player.frozen = true; player.eye = 0.85; player.pitch = 1.1; player.yaw = Math.PI;
+  let beepT = 0, standing = false;
+  return {
+    cells: lv.cells, interactables: [],
+    begin(my) {
+      fade(0, '#ffffff');
+      (async () => {
+        await say('Ты открываешь глаза. Белый потолок. Тихо пищит аппарат.', 5); if (!alive(my)) return;
+        await say('Дурка. Ты в психбольнице.', 4); if (!alive(my)) return;
+        await say('Ни Коча. Ни КС 1.6. Ни стендоферов. Ни училок.', 5); if (!alive(my)) return;
+        standing = true;
+        await say('Всё это было очередное видение.', 5); if (!alive(my)) return;
+        await say('Мы психопаты.', 4); if (!alive(my)) return;
+        ended = true; document.exitPointerLock && document.exitPointerLock();
+        showOverlay('<h1>КОНЕЦ</h1><p>Это было очередное видение. Мы психопаты.</p><b>Кликни, чтобы сыграть снова</b>', () => { location.href = location.pathname; });
+      })();
+    },
+    update(dt) {
+      beepT -= dt; if (beepT <= 0) { beepT = 1.2; audio.beep(); mon.material.color.setHex(0x40ff60); setTimeout(() => mon.material.color.setHex(0x103010), 150); }
+      if (standing) {
+        player.frozen = false;
+        player.eye += (1.6 - player.eye) * Math.min(1, dt * 1.5);
+        player.pitch += (0 - player.pitch) * Math.min(1, dt * 1.5);
+      }
+    },
+  };
+}
+
+// =====================================================================
+// DLC «Вторая личность»: you play as Koch (co-op friend is Koch's brother)
+// =====================================================================
+const isDlc = () => story.mode === 'dlc';
+
+Object.assign(T, {
+  kochWall: () => ctex(128, 128, (g, w, h) => {
+    g.fillStyle = '#9fbcd6'; g.fillRect(0, 0, w, h);
+    for (let x = 0; x < w; x += 16) { g.fillStyle = '#8eaac4'; g.fillRect(x, 0, 6, h); }
+    speckle(g, w, h, 300, ['#a9c6df', '#93b0ca']);
+  }),
+});
+
+Object.assign(FIG, {
+  hero: () => makeFigure({ h: 1.7, body: 0x2f8f4a, label: 'Друг', labelColor: '#a8ffb8', extra: hair(0x222222) }),
+  classmate: (name, body) => makeFigure({ h: 1.55, body, label: name, labelColor: '#dddddd', extra: hair(0x3a2a1a) }),
+  brother: () => { const f = FIG.kochfam('Брат Коч'); f.userData.partnerNpc = true; return f; },
+});
+
+function portraitTex(hero) {
+  return ctex(128, 160, (g, w, h) => {
+    const gr = g.createLinearGradient(0, 0, w, h); gr.addColorStop(0, '#cfd8dc'); gr.addColorStop(1, '#8a9aa4'); g.fillStyle = gr; g.fillRect(0, 0, w, h);
+    g.fillStyle = hero ? '#2f8f4a' : '#2b5fd6'; g.fillRect(24, 112, 80, 48);
+    g.fillStyle = '#f0c8a0'; g.beginPath(); g.arc(64, 72, 34, 0, 7); g.fill();
+    g.fillStyle = hero ? '#222222' : '#2a1d14'; g.beginPath(); g.arc(64, 64, 36, Math.PI, 0); g.fill();
+    for (const x of [50, 78]) { g.fillStyle = '#fff'; g.beginPath(); g.arc(x, 76, 6, 0, 7); g.fill(); g.fillStyle = '#111'; g.beginPath(); g.arc(x, 77, 3, 0, 7); g.fill(); }
+    g.fillStyle = '#7a2b2b'; g.fillRect(54, 92, 20, 4);
+    g.fillStyle = 'rgba(255,255,255,.25)'; g.beginPath(); g.moveTo(0, 0); g.lineTo(40, 0); g.lineTo(0, 60); g.fill();
+  });
+}
+// host and guest stand on different cells in the story scenes
+function placeRole(h, gst) { if (net.role === 'guest') place(gst[0], gst[1], gst[2]); else place(h[0], h[1], h[2]); }
+
+// what Koch did today (host side); the night, the hospital and the ending refer back to it
+const life = { porridge: false, late: false, wet: false, bun: false, duel: '', card: false, answer: '', cs: 0, photos: 0, known: 0 };
+function chapter(n, name) { bigMsg(`Глава ${n}. ${name}`, 2800); }
+function faceCell(x, y) { player.yaw = Math.atan2(-(x - player.x), -(y - player.y)); }
+// a list of things to do that both players can tick off: the guest asks, the host checks the distance and runs it
+function taskSet(list, onTask) {
+  const progress = L.createProgress(list.length);
+  const guest = net.role === 'guest';
+  const run = (id) => { if (!progress.collect(id)) return; audio.pickup(); onTask(id); };
+  return {
+    progress,
+    interactables: list.map((t, id) => ({ x: t.x, y: t.y, r: t.r || 1.5, label: t.label, active: () => !progress.got.has(id),
+      use() { if (guest) net.send({ type: 'act', kind: 'task', id }); else run(id); } })),
+    onAct(m) { const gq = net.remote.pos, t = list[m.id]; if (m.kind === 'task' && gq && t && Math.hypot(gq.x - t.x, gq.y - t.y) < 2.8) run(m.id); },
+    // guest: mirror the host's ticks; returns true when the count changed
+    sync() {
+      if (!guest || !net.snap) return false;
+      const had = progress.count();
+      progress.fromArray(net.snap.it.filter((i) => i < list.length));
+      if (progress.count() > had) audio.pickup();
+      return progress.count() !== had;
+    },
+  };
+}
+function npc(label, body, h = 1.65, hairColor = 0x2a1d14, labelColor = '#ffffff') {
+  return makeFigure({ h, body, label, labelColor, extra: hair(hairColor) });
+}
+function nurseFig(label) {
+  return makeFigure({
+    h: 1.9, body: 0xf4f4f4, legs: 0xdedede, label, labelColor: '#ffffff',
+    extra: (g, d) => {
+      add(g, new THREE.SphereGeometry(d.headR * 0.5, 8, 8), 0x888888, 0, d.headY + d.headR * 1.05, -d.headR * 0.4);
+      for (const s of [-1, 1]) add(g, new THREE.TorusGeometry(d.headR * 0.26, 0.012, 6, 12), 0x111111, s * d.headR * 0.38, d.headY + d.headR * 0.15, d.headR * 0.98);
+      add(g, BOX(0.24, 0.32, 0.04), 0x3a6ea5, 0.28, d.legH + d.torsoH * 0.55, 0.2).rotation.x = 0.2;
+    },
+  });
+}
+function catFig(name) {
+  const cat = new THREE.Group();
+  add(cat, BOX(0.5, 0.28, 0.25), 0xe08a3a, 0, 0.22, 0); add(cat, new THREE.SphereGeometry(0.15, 10, 8), 0xe08a3a, 0.3, 0.38, 0);
+  for (const s of [-1, 1]) add(cat, new THREE.ConeGeometry(0.05, 0.1, 6), 0xe08a3a, 0.32, 0.53, s * 0.07);
+  const lbl = labelSprite(name, '#ffd8a0'); lbl.position.set(0, 0.85, 0); cat.add(lbl);
+  return cat;
+}
+function cakeGroup(candles) {
+  const g = new THREE.Group();
+  add(g, new THREE.CylinderGeometry(0.55, 0.6, 0.35, 20), 0xf4e0c8, 0, 0.18, 0);
+  add(g, new THREE.CylinderGeometry(0.56, 0.56, 0.06, 20), 0xd04a7a, 0, 0.37, 0);
+  const flames = [];
+  for (let i = 0; i < candles; i++) {
+    const a = i / candles * Math.PI * 2, x = Math.cos(a) * 0.4, z = Math.sin(a) * 0.4;
+    add(g, new THREE.CylinderGeometry(0.015, 0.015, 0.16, 6), i % 2 ? 0x6fb0ff : 0xffe36a, x, 0.48, z);
+    flames.push(add(g, new THREE.SphereGeometry(0.025, 6, 6), glow(0xffb040), x, 0.58, z));
+  }
+  const light = new THREE.PointLight(0xffb060, 4, 5, 2); light.position.set(0, 0.9, 0); g.add(light);
+  g.userData = { flames, light };
+  return g;
+}
+function blowCandles(cake) { for (const f of cake.userData.flames) f.visible = false; cake.userData.light.intensity = 0; }
+function flickerCandles(cake, t) { cake.userData.flames.forEach((f, i) => f.scale.setScalar(0.8 + Math.sin(t * 13 + i * 1.7) * 0.25)); }
+function signTex(lines, bg = '#f0f0e8', fg = '#222') {
+  return ctex(256, 180, (c, w, h) => {
+    c.fillStyle = bg; c.fillRect(0, 0, w, h); c.fillStyle = fg; c.textAlign = 'center';
+    lines.forEach(([t, size, col], i) => { c.font = `bold ${size}px Arial`; c.fillStyle = col || fg; c.fillText(t, w / 2, 40 + i * 42); });
+  });
+}
+
+// ---------- shared: Koch's bedroom ----------
+function buildKochRoom(evening) {
+  const rows = mk(9, 7, []);
+  const lv = setupLevel({
+    rows, H: 2.9, bg: evening ? 0x07080f : 0x1a1610, ambient: evening ? 0x8aa0ff : 0xffe8c8, ai: evening ? 1.1 : 2.4, fog: [evening ? 0x07080f : 0x1a1610, 0.03],
+    wall: T.kochWall, floor: (w, h) => T.pcCarpet(w, h), ceil: (w, h) => T.ceiling(w, h), lamps: !evening, lampColor: 0xffe0a0, lampAt: (x, y) => x === 4 && y === 3,
+  });
+  const cells = lv.cells.map((r) => r.slice());
+  cells[1][1] = cells[1][2] = 0;          // bed
+  cells[1][7] = 0;                         // wardrobe
+  cells[3][7] = 0;                         // desk
+  const g = new THREE.Group(); scene.add(g);
+  add(g, BOX(2 * S - 0.3, 0.45, 1.3), 0x6a4a2a, 2 * S, 0.25, wp(1) - 0.25);
+  add(g, BOX(2 * S - 0.4, 0.18, 1.2), 0x2b5fd6, 2 * S, 0.55, wp(1) - 0.25);
+  add(g, BOX(0.5, 0.15, 0.8), 0xffffff, S + 0.45, 0.7, wp(1) - 0.25);
+  add(g, BOX(1.4, 2.3, 1.0), 0x8a6a4a, wp(7) + 0.4, 1.15, wp(1) - 0.3);
+  add(g, BOX(0.02, 1.9, 0.02), 0x3a2a1a, wp(7) - 0.31, 1.15, wp(1) - 0.3);
+  add(g, BOX(1.0, 0.08, 1.8), 0x5a5a62, wp(7) + 0.5, 0.75, wp(3));
+  for (const dz of [-0.8, 0.8]) add(g, BOX(0.08, 0.75, 0.08), 0x333333, wp(7) + 0.1, 0.37, wp(3) + dz);
+  add(g, BOX(0.45, 0.5, 0.25), 0x1a1a1a, wp(7) + 0.7, 0.25, wp(3) + 0.6);
+  add(g, BOX(0.25, 0.6, 0.9), 0x222222, wp(7) + 0.8, 1.15, wp(3));
+  const desk = ctex(128, 80, (c, w, h) => {
+    c.fillStyle = '#2f7fc4'; c.fillRect(0, 0, w, h);
+    for (let i = 0; i < 4; i++) { c.fillStyle = '#ffe36a'; c.fillRect(6, 6 + i * 16, 10, 10); }
+    c.fillStyle = '#245edb'; c.fillRect(0, h - 8, w, 8); c.fillStyle = '#3c9a3c'; c.fillRect(0, h - 8, 20, 8);
+  });
+  const screen = add(g, new THREE.PlaneGeometry(0.8, 0.5), new THREE.MeshBasicMaterial({ map: evening ? desk : null, color: evening ? 0xffffff : 0x111418 }), wp(7) + 0.67, 1.15, wp(3));
+  screen.rotation.y = -Math.PI / 2;
+  add(g, BOX(0.5, 0.5, 0.5), 0x3a3a44, wp(6) + 0.3, 0.3, wp(3));       // chair
+  if (evening) { const l = new THREE.PointLight(0x6fb0ff, 8, 7, 2); l.position.set(wp(7), 1.3, wp(3)); scene.add(l); }
+  const mirrorMat = new THREE.MeshBasicMaterial({ map: portraitTex(false) });
+  add(g, BOX(1.0, 1.3, 0.04), 0x3a2a1a, wp(4), 1.6, S + 0.02);
+  add(g, new THREE.PlaneGeometry(0.85, 1.15), mirrorMat, wp(4), 1.6, S + 0.05);
+  const poster = add(g, new THREE.PlaneGeometry(1.4, 1.05), new THREE.MeshBasicMaterial({ map: ctex(256, 192, drawCS) }), S + 0.03, 1.7, wp(4));
+  poster.rotation.y = Math.PI / 2;
+  const door = add(g, new THREE.PlaneGeometry(1.4, 2.3), 0x6b4a2b, wp(4), 1.15, 6 * S - 0.03); door.rotation.y = Math.PI;
+  return { cells, g, screen, mirrorMat };
+}
+
+// ---------- DLC scene: morning ----------
+function buildKMorning() {
+  const room = buildKochRoom(false);
+  placeRole([1, 2, Math.PI], [3, 4, 0]);
+  if (net.role !== 'guest') { player.eye = 0.7; player.pitch = 1.0; player.frozen = true; }
+  const bro = FIG.brother(); bro.position.set(wp(2), 0.55, wp(1) - 0.25); room.g.add(bro);
+  let dressed = false, up = net.role === 'guest', mirrorSeen = false, flash = 0, busy = false, alarm = 0;
+  return {
+    cells: room.cells,
+    interactables: [
+      { x: 6.5, y: 1.5, r: 1.6, label: () => (dressed ? 'Уже одет' : 'E — одеться'), use() { if (dressed) return; dressed = true; audio.door(); say('Джинсы, синяя кофта. Ты — Коч. Всё как всегда.', 3); } },
+      { x: 4.5, y: 1.5, r: 1.4, label: 'E — посмотреть в зеркало',
+        use() {
+          if (!mirrorSeen) { mirrorSeen = true; flash = 0.35; room.mirrorMat.map = portraitTex(true); audio.sting(); say('В зеркале… на секунду мелькнул друг в зелёной кофте?! Показалось.', 3.5); }
+          else say('Коч. Красавчик. Точно Коч.', 2.5);
+        } },
+      { x: 1.5, y: 4.5, r: 1.3, label: 'E — посмотреть на постер',
+        use() { say('Постер CS 1.6. Папа подарил на десять лет. Самый настоящий постер в мире.', 4); } },
+      { x: 2.5, y: 1.8, r: 1.0, active: () => !net.connected, label: 'E — пнуть брата',
+        use() { say('Брат: Ай! Мама, Коч дерётся! …Ладно-ладно, с днём… а, нет, не помню чего.', 4); } },
+      { x: 4.5, y: 5.4, r: 1.4, label: () => (dressed ? 'E — на кухню, завтракать' : 'Сначала оденься (шкаф)'),
+        use() { if (!dressed) { say('В пижаме на кухню? Бабка увидит — засмеёт. Сначала оденься.', 3, true); return; } if (busy) return; busy = true; audio.door(); next(); } },
+    ],
+    begin(my) {
+      audio.hum(false);
+      chapter(1, 'Утро');
+      (async () => {
+        await say('DLC «ВТОРАЯ ЛИЧНОСТЬ». Теперь ты — Коч.', 3.5); if (!alive(my)) return;
+        await say('Будильник: ПИ-ПИ-ПИ-ПИ!', 2.5); if (!alive(my)) return;
+        await say('Мама (с кухни): КОЧ! В школу проспишь!', 3.5); if (!alive(my)) return;
+        up = true;
+        await say('Стоп. Сегодня же 12 ноября. Тебе 14! День рождения!', 4); if (!alive(my)) return;
+        if (!net.connected) { await say('Брат: Вставай, соня! Ты опять во сне с кем-то разговаривал!', 4); if (!alive(my)) return; }
+        await say('Оденься (шкаф) и выходи из комнаты. E — действие.', 4);
+      })();
+    },
+    update(dt) {
+      alarm -= dt;
+      if (!up && alarm <= 0) { alarm = 0.45; audio.beep(); }
+      if (up && player.frozen && net.role !== 'guest') {
+        player.eye += (1.6 - player.eye) * Math.min(1, dt * 2); player.pitch += (0 - player.pitch) * Math.min(1, dt * 2);
+        if (player.eye > 1.55) { player.frozen = false; player.x = 1.5; player.y = 2.6; }
+      }
+      if (flash > 0) { flash -= dt; if (flash <= 0) room.mirrorMat.map = portraitTex(false); }
+      faceToward(bro, player.x * S, player.y * S);
+      bro.position.y = 0.55 + Math.abs(Math.sin(gameTime * 5)) * 0.35;              // jumping on the bed
+    },
+  };
+}
+
+// ---------- DLC scene: breakfast with the family ----------
+function drawingTex() {
+  return ctex(128, 96, (c, w, h) => {
+    c.fillStyle = '#fffdf4'; c.fillRect(0, 0, w, h);
+    [['#2b5fd6', 40], ['#2f8f4a', 88]].forEach(([col, x]) => {
+      c.strokeStyle = col; c.lineWidth = 4;
+      c.beginPath(); c.arc(x, 28, 10, 0, 7); c.moveTo(x, 38); c.lineTo(x, 62); c.moveTo(x - 12, 48); c.lineTo(x + 12, 48);
+      c.moveTo(x, 62); c.lineTo(x - 9, 80); c.moveTo(x, 62); c.lineTo(x + 9, 80); c.stroke();
+    });
+    c.fillStyle = '#c03030'; c.font = 'bold 14px Arial'; c.textAlign = 'center'; c.fillText('Я И КОЧ', w / 2, 92);
+  });
+}
+function calendarTex() {
+  return ctex(160, 200, (c, w, h) => {
+    c.fillStyle = '#ffffff'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#c03030'; c.fillRect(0, 0, w, 34); c.fillStyle = '#fff'; c.font = 'bold 20px Arial'; c.textAlign = 'center'; c.fillText('НОЯБРЬ', w / 2, 24);
+    c.fillStyle = '#222'; c.font = '14px Arial';
+    for (let d = 1; d <= 30; d++) { const i = d + 4, x = 14 + (i % 7) * 21, y = 56 + Math.floor(i / 7) * 26; c.fillText(String(d), x + 6, y); }
+    c.strokeStyle = '#e02020'; c.lineWidth = 3; c.beginPath(); c.arc(14 + 2 * 21 + 6, 56 + 2 * 26 - 5, 12, 0, 7); c.stroke();
+    c.fillStyle = '#e02020'; c.font = 'bold 18px Arial'; c.fillText('МОЙ ДР!!!', w / 2, h - 12);
+  });
+}
+function buildKKitchen() {
+  const rows = mk(11, 8, []);
+  const lv = setupLevel({
+    rows, H: 2.9, bg: 0x1a1610, ambient: 0xfff0d0, ai: 2.6, fog: [0x1a1610, 0.02],
+    wall: T.houseWall, floor: (w, h) => T.tile(w, h), ceil: (w, h) => T.ceiling(w, h), lamps: true, lampColor: 0xfff0c0, lampAt: (x, y) => x === 5 && (y === 2 || y === 5),
+  });
+  const guest = net.role === 'guest';
+  const cells = lv.cells.map((r) => r.slice());
+  const g = new THREE.Group(); scene.add(g);
+  add(g, BOX(1.6, 0.9, 0.8), 0xdedede, wp(1), 0.45, S + 0.4);                         // sink
+  add(g, BOX(1.4, 0.9, 0.8), 0x444444, wp(3), 0.45, S + 0.4);                         // stove
+  add(g, new THREE.CylinderGeometry(0.16, 0.2, 0.3, 12), 0xc8c8d0, wp(3) + 0.3, 1.05, S + 0.4);   // kettle
+  add(g, new THREE.CylinderGeometry(0.25, 0.25, 0.25, 12), 0x8a8a90, wp(3) - 0.35, 1.02, S + 0.4); // porridge pot
+  add(g, BOX(1.2, 2.0, 0.8), 0xf4f4f4, wp(8), 1.0, S + 0.4);                         // fridge
+  add(g, new THREE.PlaneGeometry(0.6, 0.45), new THREE.MeshBasicMaterial({ map: drawingTex() }), wp(8), 1.3, S + 0.81);
+  const cal = add(g, new THREE.PlaneGeometry(0.7, 0.88), new THREE.MeshBasicMaterial({ map: calendarTex() }), S + 0.03, 1.6, wp(2)); cal.rotation.y = Math.PI / 2;
+  add(g, BOX(3.0, 0.08, 2.4), 0x7a5a3a, wp(5), 0.75, 4 * S); add(g, BOX(0.16, 0.75, 0.16), 0x5a3b2a, wp(5), 0.37, 4 * S);
+  cells[3][5] = cells[4][5] = 0;
+  const bowl = add(g, new THREE.CylinderGeometry(0.18, 0.12, 0.1, 12), 0xf4f4f4, wp(5) - 1.0, 0.84, wp(4));
+  const cup = add(g, new THREE.CylinderGeometry(0.07, 0.06, 0.12, 10), 0xc03030, wp(5) + 1.1, 0.85, wp(4)); cup.visible = false;
+  const paper = add(g, BOX(0.5, 0.02, 0.36), 0xe8e4d8, wp(5) + 1.0, 0.8, wp(3));
+  const door = add(g, new THREE.PlaneGeometry(1.4, 2.3), 0x6b4a2b, wp(5), 1.15, 7 * S - 0.03); door.rotation.y = Math.PI;
+  const dl = labelSprite('Во двор', '#9fffb0'); dl.position.set(wp(5), 2.7, 7 * S - 0.2); g.add(dl);
+  const mom = FIG.kochfam('Мама Коч'); mom.position.set(wp(3), 0, wp(1) + 0.4); g.add(mom);
+  const dad = FIG.kochfam('Папа Коч'); dad.position.set(wp(6) + 0.2, 0, wp(3)); dad.scale.y = 0.8; g.add(dad);
+  const gran = FIG.kochfam('Бабка Коч'); gran.position.set(wp(6) + 0.2, 0, wp(4)); gran.scale.y = 0.8; g.add(gran);
+  const bro = FIG.brother(); bro.position.set(wp(4) - 0.2, 0, wp(3)); bro.scale.y = 0.85; g.add(bro);
+  placeRole([1, 5, -Math.PI / 2], [2, 6, -Math.PI / 2]);
+
+  const LINES = [
+    ['Манка. С комочками. Как всегда.', 'Мама: Всё съел? Молодец. Вон какой большой стал… а сколько тебе, кстати?'],
+    ['Ты наливаешь бабушке чай. Три ложки сахара, как она любит.', 'Бабка: Спасибо, внучек. Привет-привет. Ты кто у нас? Коч? Ну пусть будет Коч.'],
+    ['Папа шуршит газетой.', 'Папа: На, полтинник. Купи себе булку. …Чего смотришь? Обычный четверг.'],
+  ];
+  const tasks = taskSet([
+    { x: 4.5, y: 4.6, r: 1.3, label: 'E — съесть кашу' },
+    { x: 3.5, y: 1.8, r: 1.3, label: 'E — налить бабушке чай' },
+    { x: 7.4, y: 3.4, r: 1.4, label: 'E — поговорить с папой' },
+  ], (id) => {
+    if (id === 0) { life.porridge = true; bowl.visible = false; }
+    if (id === 1) cup.visible = true;
+    if (id === 2) paper.visible = false;
+    setItemsHud(`Завтрак: ${tasks.progress.count()}/3`);
+    const my = sid;
+    (async () => {
+      await say(LINES[id][0], 3); if (!alive(my)) return;
+      await say(LINES[id][1], 4.5); if (!alive(my)) return;
+      if (tasks.progress.ready()) leave(my);
+    })();
+  });
+  setItemsHud('Завтрак: 0/3');
+  let open = false, busy = false, fridge = false;
+  function leave(my) {
+    (async () => {
+      await say('Ты (Коч): Ничего не забыли? Какой сегодня день?', 3.5); if (!alive(my)) return;
+      await say('Мама: Четверг. Не опоздай.', 3); if (!alive(my)) return;
+      await say(net.connected ? 'Папа: …День вывоза мусора! Вынеси ведро, раз уж встал.' : 'Брат: День вывоза мусора! Ха-ха!', 3.5); if (!alive(my)) return;
+      await say('…Ладно. Может, вечером вспомнят.', 3); if (!alive(my)) return;
+      open = true; say('Выходи во двор (дверь внизу). До звонка мало времени!', 3.5);
+    })();
+  }
+  return {
+    cells, coop: true, progress: tasks.progress, onAct: tasks.onAct,
+    interactables: [
+      ...tasks.interactables,
+      { x: 1.5, y: 2.5, r: 1.3, label: 'E — посмотреть календарь', use() { say('12 ноября обведено красным. «МОЙ ДР!!!» — твоим почерком. Больше ничьим.', 4); } },
+      { x: 8.5, y: 1.8, r: 1.2, label: 'E — рисунок на холодильнике',
+        use() { if (!fridge) { fridge = true; audio.sting(); } say('Два человечка за ручки. Синий и зелёный. Подпись: «Я И КОЧ». Друг нарисовал, когда вам было по семь. Мама до сих пор не снимает.', 4.5); } },
+      { x: 5.5, y: 6.4, r: 1.4, label: () => (open ? 'E — выйти во двор' : 'Сначала позавтракай'),
+        use() { if (guest || !open || busy) return; busy = true; audio.door(); next(); } },
+    ],
+    begin(my) {
+      audio.hum(false);
+      chapter(2, 'Завтрак');
+      (async () => {
+        await say('Кухня. Пахнет манкой и папиным кофе.', 3); if (!alive(my)) return;
+        await say('Мама: Садись, ешь. Бабушке чай налей. И к папе подойди, он что-то хотел.', 4.5);
+      })();
+    },
+    update() {
+      if (tasks.sync()) setItemsHud(`Завтрак: ${tasks.progress.count()}/3`);
+      bowl.visible = !tasks.progress.got.has(0); cup.visible = tasks.progress.got.has(1); paper.visible = !tasks.progress.got.has(2);
+      faceToward(gran, player.x * S, player.y * S);
+      faceToward(bro, player.x * S, player.y * S);
+      mom.rotation.y = Math.PI + Math.sin(gameTime * 0.7) * 0.4;          // busy at the stove
+      dad.rotation.y = -Math.PI / 2;
+    },
+  };
+}
+
+// ---------- DLC scene: the yard on the way to school ----------
+function buildKYard() {
+  const rows = mk(32, 9, []);
+  const lv = setupLevel({
+    rows, H: 7, bg: 0x9ab4cc, ambient: 0xffffff, ai: 2.8, fog: [0x9ab4cc, 0.014],
+    wall: T.facade, floor: (w, h) => T.asphalt(w, h),
+  });
+  const guest = net.role === 'guest';
+  const cells = lv.cells.map((r) => r.slice());
+  const g = new THREE.Group(); scene.add(g);
+  // kiosk
+  cells[1][8] = cells[1][9] = 0;
+  add(g, BOX(4.6, 2.6, 2.2), 0x3a7a5a, 9 * S, 1.3, wp(1));
+  add(g, new THREE.PlaneGeometry(2.6, 1.0), glow(0xfff2c0), 9 * S, 1.5, wp(1) + 1.12);
+  const kl = labelSprite('ЛАРЁК 24', '#ffe36a'); kl.position.set(9 * S, 3.1, wp(1) + 1.0); g.add(kl);
+  // bench with the neighbour
+  cells[7][14] = cells[7][15] = 0;
+  add(g, BOX(3.6, 0.12, 0.9), 0x7a5a3a, 15 * S, 0.5, wp(7)); add(g, BOX(3.6, 0.7, 0.12), 0x6a4a2a, 15 * S, 0.85, wp(7) + 0.45);
+  const nb = npc('Соседка', 0x8a6a8a, 1.5, 0xcfcfcf); nb.scale.y = 0.75; nb.position.set(15 * S, 0.1, wp(7) - 0.1); g.add(nb);
+  // swings
+  for (const dx of [-1.3, 1.3]) add(g, BOX(0.1, 2.6, 0.1), 0x555a60, wp(20) + dx, 1.3, wp(7) + 0.3);
+  add(g, BOX(2.7, 0.1, 0.1), 0x555a60, wp(20), 2.6, wp(7) + 0.3);
+  const seat = new THREE.Group(); seat.position.set(wp(20), 2.6, wp(7) + 0.3); g.add(seat);
+  add(seat, BOX(0.7, 0.06, 0.35), 0xc03030, 0, -2.0, 0);
+  for (const dx of [-0.32, 0.32]) add(seat, BOX(0.02, 2.0, 0.02), 0x222222, dx, -1.0, 0);
+  // puddles: water is walkable but slows you down
+  const water = new Set();
+  for (const [x, y] of [[6, 5], [7, 5], [12, 3], [13, 3], [18, 5], [22, 3], [23, 3], [26, 6], [27, 6]]) {
+    water.add(x + ',' + y);
+    add(g, new THREE.PlaneGeometry(S * 0.95, S * 0.95), new THREE.MeshLambertMaterial({ color: 0x4a6a8a, transparent: true, opacity: 0.8 }), wp(x), 0.02, wp(y)).rotation.x = -Math.PI / 2;
+  }
+  const graffiti = labelSprite('КОЧ ТОП 1.6', '#ff5050'); graffiti.position.set(wp(17), 2.0, S + 0.15); graffiti.scale.set(3.2, 0.8, 1); g.add(graffiti);
+  // the dog runs around
+  const dog = new THREE.Group(); g.add(dog);
+  add(dog, BOX(0.7, 0.35, 0.3), 0x8a5a2a, 0, 0.4, 0); add(dog, BOX(0.3, 0.28, 0.28), 0x8a5a2a, 0.45, 0.6, 0);
+  for (const [lx, lz] of [[-0.25, -0.1], [-0.25, 0.1], [0.25, -0.1], [0.25, 0.1]]) add(dog, BOX(0.08, 0.25, 0.08), 0x6a4a2a, lx, 0.12, lz);
+  const dl = labelSprite('Шарик', '#ffd8a0'); dl.position.set(0, 1.1, 0); dog.add(dl);
+  // the school gate and Lyokha
+  const gate = add(g, new THREE.PlaneGeometry(1.8, 2.6), glow(0xfff6d8), 31 * S - 0.03, 1.3, wp(4)); gate.rotation.y = -Math.PI / 2;
+  const gl = labelSprite('ШКОЛА', '#9fffb0'); gl.position.set(31 * S - 0.3, 3.2, wp(4)); g.add(gl);
+  const lyoha = FIG.classmate('Лёха', 0x6a4ac0); lyoha.position.set(wp(29), 0, wp(2)); g.add(lyoha);
+  placeRole([1, 4, -Math.PI / 2], [1, 5, -Math.PI / 2]);
+
+  let left = 70, wetSaid = false, metLyoha = false, busy = false, swing = 0;
+  const dogSpot = { x: 24.5, y: 2.5, r: 1.6, label: 'E — погладить Шарика',
+    use() { say('Шарик виляет хвостом… и лает куда-то тебе за спину. Там никого нет.', 4); } };
+  const hud = () => { if (!guest) setItemsHud(left > 0 ? `До звонка: ${Math.ceil(left)} с` : 'Опоздал!'); };
+  hud();
+  return {
+    cells,
+    inWater: (x, y) => water.has(Math.floor(x) + ',' + Math.floor(y)),
+    interactables: [
+      { x: 8.9, y: 2.6, r: 1.5, active: () => !life.bun, label: 'E — купить булку (50 ₽)',
+        use() {
+          life.bun = true; audio.pickup(); const my = sid;
+          (async () => {
+            await say('Продавщица: Тебе как обычно, Коч? С маком?', 3.5); if (!alive(my)) return;
+            await say('Ты: Я Коч.', 2); if (!alive(my)) return;
+            await say('Продавщица: Ну да, ну да. Коч. Держи, Коч.', 3);
+          })();
+        } },
+      { x: 14.9, y: 6.1, r: 1.5, label: 'E — поздороваться с соседкой',
+        use() { say('Соседка: Здравствуй, Кочик! Опять в телефоне со своим другом болтаешь? Ну иди, иди…', 4); } },
+      { x: 20.5, y: 6.2, r: 1.4, label: 'E — качнуть качели',
+        use() {
+          swing = 3; const my = sid;
+          (async () => {
+            await say('Скрип-скрип. Тут ты в семь лет познакомился с другом.', 3.5); if (!alive(my)) return;
+            await say('Ты сказал ему: «Давай я буду тобой, когда тебе страшно». Он кивнул. С тех пор вы вместе.', 5);
+          })();
+        } },
+      { x: 17.5, y: 1.5, r: 1.4, label: 'E — посмотреть на граффити', use() { say('«КОЧ ТОП 1.6». Это ты писал. Ночью. Ты не помнишь, как выходил из дома.', 4); } },
+      dogSpot,
+      { x: 30.4, y: 4.5, r: 1.5, label: 'E — войти в школу', use() { if (busy) return; busy = true; audio.door(); next(); } },
+    ],
+    begin(my) {
+      audio.hum(false);
+      chapter(3, 'Двор');
+      (async () => {
+        await say('Двор. Ноябрь. Изо рта идёт пар.', 3); if (!alive(my)) return;
+        await say('Тебе четырнадцать. Сегодня. И никто не поздравил.', 3.5); if (!alive(my)) return;
+        await say('До звонка 70 секунд. Школа — в конце улицы. Лужи обходи!', 4);
+      })();
+    },
+    update(dt) {
+      if (!guest && left > 0) {
+        left -= dt; hud();
+        if (left <= 0) { life.late = true; audio.bell(); say('Вдалеке звенит звонок. Ты опоздал. Училка будет в ярости.', 3.5); }
+      }
+      if (!wetSaid && this.inWater(player.x, player.y)) { wetSaid = true; life.wet = true; say('Шлёп! Кроссовки насквозь мокрые.', 2.5, true); }
+      const t = gameTime * 0.6;
+      dog.position.set(wp(24) + Math.cos(t) * 2.2, 0, wp(2) + Math.sin(t * 1.3) * 0.8);
+      dog.rotation.y = -t + Math.PI;
+      dogSpot.x = dog.position.x / S; dogSpot.y = dog.position.z / S;
+      if (swing > 0) swing -= dt;
+      seat.rotation.x = Math.sin(gameTime * 2.4) * (swing > 0 ? 0.5 : 0.08);
+      faceToward(nb, player.x * S, player.y * S);
+      faceToward(lyoha, player.x * S, player.y * S);
+      if (!metLyoha && player.x > 25) { metLyoha = true; say('Лёха: Коч! Ты с кем там болтал по дороге? Погнали, звонок!', 3.5); }
+    },
+  };
+}
+
+// ---------- DLC scene: the canteen at the long break, a reaction duel with the Standoff guy ----------
+function buildKBreak() {
+  const rows = mk(16, 10, []);
+  const lv = setupLevel({
+    rows, H: 3.4, bg: 0x15140f, ambient: 0xfff4d8, ai: 2.6, fog: [0x15140f, 0.015],
+    wall: T.schoolWall, floor: T.schoolFloor, ceil: (w, h) => T.ceiling(w, h), lamps: true, lampAt: (x, y) => x % 4 === 2 && y % 3 === 2,
+  });
+  const cells = lv.cells.map((r) => r.slice());
+  const g = new THREE.Group(); scene.add(g);
+  const names = ['Петя', 'Света', 'Гоша', 'Оля', 'Саня', 'Ира'];
+  const colors = [0x8a6a3a, 0xd08a2a, 0x4a8ac0, 0xc04a4a, 0x3a9a7a, 0x6a4ac0];
+  let ni = 0;
+  for (const [x, y] of [[4, 3], [4, 6], [9, 3], [9, 6]]) {
+    cells[y][x] = cells[y][x + 1] = 0;
+    add(g, BOX(2 * S - 0.4, 0.08, 1.4), 0x8a5a2b, (x + 1) * S, 0.75, wp(y));
+    add(g, BOX(0.12, 0.75, 0.12), 0x5a3b2a, (x + 1) * S, 0.37, wp(y));
+    if (x === 4 && y === 3) continue;                       // Dasha's table
+    for (const dx of [-0.9, 0.9]) {
+      const c = FIG.classmate(names[ni % names.length], colors[ni % colors.length]); ni++;
+      c.scale.y = 0.78; c.position.set((x + 1) * S + dx, 0, wp(y) + 0.95); c.rotation.y = Math.PI; g.add(c);
+    }
+  }
+  for (let x = 10; x <= 13; x++) cells[1][x] = 0;
+  add(g, BOX(4 * S - 0.2, 1.0, S - 0.3), 0xb0b0b8, 12 * S, 0.5, wp(1));
+  for (let i = 0; i < 6; i++) add(g, new THREE.CylinderGeometry(0.08, 0.07, 0.16, 10), 0xd08a2a, 10.5 * S + i * 0.9, 1.08, wp(1));
+  const cook = npc('Повариха', 0xf4f4f4, 1.75, 0xf4f4f4); cook.position.set(wp(14), 0, wp(1)); g.add(cook);
+  const dasha = FIG.classmate('Даша', 0xd04a7a); dasha.position.set(wp(4) + 0.2, 0, wp(2) + 0.3); g.add(dasha);
+  const stand = FIG.standofer(); stand.position.set(wp(12), 0, wp(7)); g.add(stand);
+  const gang = [FIG.classmate('Шестёрка', 0xe0782a), FIG.classmate('Шестёрка', 0xe0782a)];
+  gang[0].position.set(wp(11) + 0.4, 0, wp(8)); gang[1].position.set(wp(13) - 0.4, 0, wp(8)); gang.forEach((m) => g.add(m));
+  const door = add(g, new THREE.PlaneGeometry(1.6, 2.4), 0x6b4a2b, 15 * S - 0.03, 1.2, wp(5)); door.rotation.y = -Math.PI / 2;
+  const dlbl = labelSprite('Кабинет 6', '#9fd0ff'); dlbl.position.set(15 * S - 0.2, 2.9, wp(5)); g.add(dlbl);
+  placeRole([1, 8, -Math.PI / 2], [1, 7, -Math.PI / 2]);
+
+  let phase = 0, busy = false, compot = false, cardGot = false;           // 0 free, 1 challenged, 2 duel over, 3 bell rang
+  const duel = { on: false, st: '', t: 0, round: 0, me: 0, him: 0 };
+  const REACT = [0.62, 0.5, 0.42];
+  function duelNext() { duel.st = 'wait'; duel.t = 1.4 + Math.random() * 2.2; say(`Раунд ${duel.round + 1}. Палец на курке… Жми E, когда будет «ОГОНЬ!»`, 2.5); }
+  function duelShot(win, why) {
+    duel.st = 'pause'; duel.t = 2.2; audio.shot();
+    if (win) duel.me++; else duel.him++;
+    duel.round++;
+    say(win ? `Хэдшот! Счёт ${duel.me}:${duel.him}` : `${why} Счёт ${duel.me}:${duel.him}`, 2);
+    if (duel.me === 2 || duel.him === 2) { duel.on = false; duelEnd(duel.me === 2); }
+  }
+  function duelEnd(win) {
+    life.duel = win ? 'win' : 'lose';
+    const my = sid;
+    (async () => {
+      await wait(2); if (!alive(my)) return;
+      if (win) {
+        await say('Стендофер: …Ладно. В 1.6 реакция норм. Без читов?', 3.5); if (!alive(my)) return;
+        await say('Шестёрки: Он с кем вообще дуэлился? Он один в воздух стрелял…', 4); if (!alive(my)) return;
+      } else {
+        await say(life.bun ? 'Стендофер: Standoff 2 лучше. Булка моя. С маком, ммм.' : 'Стендофер: Standoff 2 лучше. Даже булки нет, нищеброд.', 3.5); if (!alive(my)) return;
+        life.bun = false;
+        await say('Ты: В следующий раз дам реванш. С AWP.', 3); if (!alive(my)) return;
+      }
+      player.frozen = false; phase = 2;
+      await wait(1.5); if (!alive(my)) return;
+      audio.bell(); phase = 3;
+      say('ЗВОНОК! Третий урок, математика. Кабинет 6 — дверь справа.', 3.5);
+    })();
+  }
+  return {
+    cells,
+    interactables: [
+      { x: 12, y: 2.4, r: 1.6, active: () => !compot, label: 'E — взять компот',
+        use() { compot = true; audio.pickup(); say('Повариха: Тебе, Коч, двойной. Ты ж у нас именинник… Ой. А откуда я знаю?', 4.5); } },
+      { x: 5, y: 2.2, r: 1.5, active: () => !cardGot, label: 'E — поговорить с Дашей',
+        use() {
+          cardGot = true; life.card = true; audio.pickup(); const my = sid;
+          (async () => {
+            await say('Даша: Коч! С днём рождения! Это тебе. Только никому.', 3.5); if (!alive(my)) return;
+            await say('Открытка: «С ДР, ______!» Имя замазано корректором. Под ним проступают буквы «С…Р…»', 5);
+          })();
+        } },
+      { x: 12.5, y: 6.4, r: 1.6, active: () => phase === 1 && !duel.on, label: 'E — дуэль на реакцию: 1.6 против Standoff',
+        use() { duel.on = true; duel.round = duel.me = duel.him = 0; player.frozen = true; faceCell(12.5, 7.5); duelNext(); } },
+      { x: 14.5, y: 5.5, r: 1.4, label: () => (phase === 3 ? 'E — на урок' : 'До звонка ещё есть время'),
+        use() { if (phase !== 3 || busy) return; busy = true; audio.door(); next(); } },
+    ],
+    begin(my) {
+      audio.hum(true);
+      chapter(4, 'Большая перемена');
+      (async () => {
+        await say(life.late ? 'Ты опоздал на первые уроки. Дежурный пустил только к большой перемене.' : 'Большая перемена. Столовая. Пахнет котлетами и хлоркой.', 4); if (!alive(my)) return;
+        await say('В углу — Стендофер со своими шестёрками. Лучше обойти.', 3.5);
+      })();
+    },
+    update(dt) {
+      faceToward(stand, player.x * S, player.y * S);
+      gang.forEach((m) => faceToward(m, player.x * S, player.y * S));
+      faceToward(dasha, player.x * S, player.y * S);
+      faceToward(cook, player.x * S, player.y * S);
+      if (phase === 0 && net.role !== 'guest' && (player.x > 8 || Math.hypot(player.x - 12.5, player.y - 7.5) < 4)) {
+        phase = 0.5; const my = sid;
+        (async () => {
+          await say('Стендофер: О, кс-ник. Сюда иди.', 2.5); if (!alive(my)) return;
+          await say(life.bun ? 'Стендофер: Булка с маком? Гони. Или дуэль: кто быстрее стрельнёт.' : 'Стендофер: Говорят, твоя 1.6 — старьё. Докажи. Дуэль на реакцию.', 4); if (!alive(my)) return;
+          phase = 1; say('Подойди к Стендоферу и прими дуэль (E).', 3);
+        })();
+      }
+      if (!duel.on) return;
+      const hit = pressed.has('KeyE');
+      duel.t -= dt;
+      if (duel.st === 'wait') { if (hit) duelShot(false, 'Фальстарт!'); else if (duel.t <= 0) { duel.st = 'fire'; duel.t = REACT[Math.min(duel.round, 2)]; bigMsg('ОГОНЬ!', 600); audio.beep(); } }
+      else if (duel.st === 'fire') { if (hit) duelShot(true); else if (duel.t <= 0) duelShot(false, 'Стендофер быстрее!'); }
+      else if (duel.st === 'pause' && duel.t <= 0) duelNext();
+    },
+  };
+}
+
+// ---------- DLC scene: school ----------
+function buildKSchool() {
+  const rows = mk(24, 7, [['#', 11, 1], ['#', 11, 2], ['#', 11, 4], ['#', 11, 5]]);
+  const lv = setupLevel({
+    rows, H: 3.4, bg: 0x15140f, ambient: 0xfff4d8, ai: 2.6, fog: [0x15140f, 0.015],
+    wall: T.schoolWall, floor: T.schoolFloor, ceil: (w, h) => T.ceiling(w, h), lamps: true, lampAt: (x, y) => x % 4 === 2 && y === 3,
+  });
+  const guest = net.role === 'guest';
+  const cells = lv.cells.map((r) => r.slice());
+  if (!guest) cells[3][11] = 0;                       // classroom door shut until the bell
+  const g = new THREE.Group(); scene.add(g);
+  const desks = [];
+  for (const x of [4, 6, 8]) for (const y of [1, 2, 4, 5]) { desks.push([x, y]); cells[y][x] = 0; }
+  const names = ['Петя', 'Даша', 'Вася', 'Света', 'Лёха', 'Катя', 'Гоша', 'Оля', 'Саня', 'Ира', 'Миша'];
+  const colors = [0x8a6a3a, 0xc04a4a, 0x4a8ac0, 0xd08a2a, 0x6a4ac0, 0x3a9a7a];
+  let ni = 0;
+  for (const [x, y] of desks) {
+    add(g, BOX(1.3, 0.08, 0.8), 0x8a5a2b, wp(x), 0.75, wp(y));
+    add(g, BOX(0.08, 0.75, 0.6), 0x5a3b2a, wp(x), 0.37, wp(y));
+    if (x === 8 && y === 5) continue;                 // Koch's desk
+    const c = FIG.classmate(names[ni % names.length], colors[ni % colors.length]); ni++;
+    c.scale.y = 0.78; c.position.set(wp(x) + 0.85, 0, wp(y)); c.rotation.y = -Math.PI / 2; g.add(c);
+  }
+  const bc = document.createElement('canvas'); bc.width = 512; bc.height = 200;
+  const boardTex = new THREE.CanvasTexture(bc); boardTex.colorSpace = THREE.SRGBColorSpace;
+  const drawBoard = (a, b) => {
+    const c = bc.getContext('2d'); c.fillStyle = '#1f4a34'; c.fillRect(0, 0, 512, 200);
+    c.fillStyle = '#eee'; c.textAlign = 'center'; c.font = 'bold 34px Arial'; c.fillText(a, 256, 70); c.font = 'bold 54px Arial'; c.fillText(b, 256, 150);
+    boardTex.needsUpdate = true;
+  };
+  drawBoard('Тема: сложение', '2 + 2 = ?');
+  const board = add(g, new THREE.PlaneGeometry(3.6, 1.4), new THREE.MeshBasicMaterial({ map: boardTex }), S + 0.03, 1.6, wp(3)); board.rotation.y = Math.PI / 2;
+  const teacher = FIG.teacher(); teacher.position.set(wp(2), 0, wp(1) + 0.3); g.add(teacher);
+  const classDoor = add(g, BOX(0.15, 2.4, S), 0x6b4a2b, wp(11), 1.2, wp(3));
+  for (let x = 12; x < 23; x++) add(g, BOX(0.9, 2.2, 0.5), x % 3 ? 0x4a6a8a : 0x5b7a9a, wp(x), 1.1, S + 0.3);
+  const exitDoor = add(g, new THREE.PlaneGeometry(1.6, 2.4), glow(0xfff6d8), 23 * S - 0.03, 1.2, wp(3)); exitDoor.rotation.y = -Math.PI / 2;
+  const sign = labelSprite('ВЫХОД', '#9fffb0'); sign.position.set(23 * S - 0.2, 2.8, wp(3)); g.add(sign);
+  const hero = FIG.hero(); hero.position.set(wp(19), 0, wp(3)); g.add(hero);
+  const lyoha = FIG.classmate('Лёха', 0x6a4ac0); lyoha.position.set(wp(15), 0, wp(5) + 0.4); g.add(lyoha);
+
+  if (guest) place(10, 3, Math.PI / 2);
+  else { place(9, 5, Math.PI / 2); player.x = 9.3; player.eye = 1.15; player.frozen = true; }
+  let phase = 0, met = false, flick = 0, whisper = false, done = false;
+  const ANSWERS = [
+    ['4', 'Училка: Правильно. Садись, пять. …Странно, обычно ты не знаешь.', false],
+    ['5', 'Училка: ДВА! И дневник на стол!', false],
+    ['КОЧ', 'Училка: Опять своё имя пишешь вместо ответа… Коч, сходи к психологу.', true],
+  ];
+  function answer(i) {
+    if (phase !== 1) return;
+    phase = 2; player.frozen = true;
+    const [txt, line, psy] = ANSWERS[i];
+    life.answer = txt;
+    drawBoard('Тема: сложение', '2 + 2 = ' + txt);
+    const my = sid;
+    (async () => {
+      await say(line, 4); if (!alive(my)) return;
+      audio.bell();
+      await say('ЗВОНОК! 3 и 4 урок закончились. Пора домой.', 3.5); if (!alive(my)) return;
+      phase = 3; player.frozen = false; cells[3][11] = 1; classDoor.visible = false; audio.door();
+      say(psy ? 'Училка: Свободны. Коч, к психологу не забудь!' : 'Училка: Свободны. Друг тебя, наверное, уже ждёт.', 3.5);
+    })();
+  }
+  return {
+    cells,
+    interactables: [
+      ...ANSWERS.map(([txt], i) => ({ x: 1.6, y: 2.5 + i, r: 0.75, active: () => phase === 1, label: `E — написать «${txt}»`, use() { answer(i); } })),
+      { x: 22.5, y: 3.5, r: 1.3, active: () => phase === 4, label: 'E — выйти из школы', use() { if (done) return; done = true; audio.door(); next(); } },
+    ],
+    begin(my) {
+      audio.hum(true);
+      chapter(5, 'Урок');
+      (async () => {
+        await say('Урок математики. Ты — Коч, последняя парта.', 3.5); if (!alive(my)) return;
+        if (life.wet) { await say('Мокрые кроссовки хлюпают под партой. Петя хихикает.', 3.5); if (!alive(my)) return; }
+        await say(life.late ? 'Училка: Коч! Опоздал на полдня — значит, выспался. К доске!' : 'Училка: Так. Коч! К доске!', 3.5); if (!alive(my)) return;
+        phase = 1;
+        if (net.role !== 'guest') { player.frozen = false; player.eye = 1.6; }
+        say('Подойди к доске и напиши ответ (E у доски).', 4);
+      })();
+    },
+    update(dt) {
+      faceToward(teacher, player.x * S, player.y * S);
+      lyoha.rotation.y = Math.atan2(player.x - 15.5, player.y - 5.9);
+      if (phase >= 3 && !whisper && player.x > 12) { whisper = true; say('Лёха (шёпотом): Коч опять под партой с другом переписывается…', 4); }
+      if (!met && hero.visible) faceToward(hero, player.x * S, player.y * S);
+      if (phase >= 3 && !met && Math.hypot(player.x - 19.5, player.y - 3.5) < 4) {
+        met = true;
+        const my = sid;
+        (async () => {
+          await say('Ты (Коч): Наконец-то! Погнали домой, я тебя с семьёй познакомлю!', 4); if (!alive(my)) return;
+          flick = 1.2; audio.sting();
+          await say('…Друг мигнул и исчез. Прямо на глазах.', 3.5); if (!alive(my)) return;
+          await say('Лёха: Коч, ты с кем разговариваешь? Там никого нет.', 4); if (!alive(my)) return;
+          phase = 4;
+          say('Иди домой. Выход — в конце коридора.', 3);
+        })();
+      }
+      if (flick > 0) { flick -= dt; hero.visible = flick > 0 && Math.sin(gameTime * 60) > 0; }
+    },
+  };
+}
+
+// ---------- DLC scene: home in the evening, chores for the family ----------
+function buildKHome() {
+  const rows = mk(15, 9, []);
+  const lv = setupLevel({
+    rows, H: 3.0, bg: 0x120d0a, ambient: 0xffe2b8, ai: 2.5, fog: [0x120d0a, 0.02],
+    wall: T.houseWall, floor: (w, h) => T.rug(w, h), ceil: (w, h) => T.ceiling(w, h), lamps: true, lampColor: 0xffd890, lampAt: (x, y) => x % 5 === 2 && y % 4 === 2,
+  });
+  const guest = net.role === 'guest';
+  const cells = lv.cells.map((r) => r.slice());
+  const g = new THREE.Group(); scene.add(g);
+  const tvMat = homeFurniture(g, cells, false);
+  add(g, BOX(0.5, 0.06, 0.4), 0x9ab0c0, wp(1), 0.92, S + 0.4);                  // tap
+  add(g, BOX(0.6, 0.8, 0.6), 0x6a5a4a, wp(13), 0.4, wp(7));                    // nightstand with glasses
+  const glasses = new THREE.Group(); g.add(glasses); glasses.position.set(wp(13), 0.86, wp(7));
+  for (const s of [-1, 1]) add(glasses, new THREE.TorusGeometry(0.07, 0.012, 6, 14), 0x111111, s * 0.09, 0, 0).rotation.x = Math.PI / 2;
+  add(glasses, BOX(0.06, 0.01, 0.01), 0x111111, 0, 0, 0);
+  const cat = new THREE.Group(); g.add(cat); cat.position.set(wp(2), 0, wp(5));
+  add(cat, BOX(0.5, 0.28, 0.25), 0xe08a3a, 0, 0.22, 0); add(cat, new THREE.SphereGeometry(0.15, 10, 8), 0xe08a3a, 0.3, 0.38, 0);
+  for (const s of [-1, 1]) add(cat, new THREE.ConeGeometry(0.05, 0.1, 6), 0xe08a3a, 0.32, 0.53, s * 0.07);
+  const catLbl = labelSprite('Барсик', '#ffd8a0'); catLbl.position.set(0, 0.85, 0); cat.add(catLbl);
+  add(g, new THREE.CylinderGeometry(0.18, 0.14, 0.08, 12), 0xc03030, wp(1), 0.04, wp(5));
+  const door = add(g, new THREE.PlaneGeometry(1.5, 2.3), 0x6b4a2b, wp(12), 1.15, S + 0.03);
+  const dl = labelSprite('Комната Коча', '#9fd0ff'); dl.position.set(wp(12), 2.7, S + 0.15); g.add(dl);
+  const fam = {};
+  for (const [n, x, y] of [['Мама Коч', 3, 2], ['Папа Коч', 9, 5.05], ['Бабка Коч', 12, 3.8]]) { const f = FIG.kochfam(n); f.position.set(wp(x), 0, wp(y)); g.add(f); fam[n] = f; }
+  fam['Папа Коч'].scale.y = 0.8; fam['Бабка Коч'].scale.y = 0.8;
+  const bro = FIG.brother(); bro.position.set(wp(6), 0, wp(6)); g.add(bro);
+  placeRole([1, 7, -Math.PI / 2], [2, 7, -Math.PI / 2]);
+
+  const TASKS = [
+    { x: 1.5, y: 1.6, label: 'E — помыть руки', done: 'Мама: Молодец, руки чистые. Не то что у твоего «друга».' },
+    { x: 13.5, y: 7.3, label: 'E — взять очки бабушки', done: 'Бабка: Ой, мои очки! Спасибо, внучек. Хотя… ты сегодня какой-то другой.' },
+    { x: 9.5, y: 6.6, label: 'E — переключить папе на футбол', done: 'Папа: ГООООЛ! Красава, сын.' },
+    { x: 1.6, y: 5.5, label: 'E — покормить Барсика', done: 'Барсик: Мяу. (Кот смотрит сквозь тебя.)' },
+  ];
+  const progress = L.createProgress(TASKS.length);
+  const hud = () => setItemsHud(`Дела: ${progress.count()}/${TASKS.length}`);
+  hud();
+  let dinner = false, roomOpen = false, busy = false;
+  function doTask(id) {
+    if (!progress.collect(id)) return;
+    hud(); audio.pickup();
+    if (id === 2) tvMat.color.setHex(0x3f9a4a);
+    say(TASKS[id].done, 4);
+    if (progress.ready()) startDinner();
+  }
+  function startDinner() {
+    if (dinner) return; dinner = true;
+    const my = sid;
+    (async () => {
+      await wait(4.2); if (!alive(my)) return;
+      await say('Мама: Все за стол! А где твой друг? Ты говорил, приведёшь.', 4.5); if (!alive(my)) return;
+      await say('Коч: Он… пропал. Прямо в школьном коридоре.', 3.5); if (!alive(my)) return;
+      await say('Папа: Какой ещё друг? Ты всегда один приходишь.', 4); if (!alive(my)) return;
+      await say('Бабка: Привет-привет-привет…', 3); if (!alive(my)) return;
+      await say('Брат: Он опять про невидимого друга! Ха-ха!', 3.5); if (!alive(my)) return;
+      await say('Коч: А вы… ничего не забыли? Сегодня же двенадцатое.', 3.5); if (!alive(my)) return;
+      await say('Папа: Точно! Футбол в девять. Спасибо, сын.', 3.5); if (!alive(my)) return;
+      await say(life.card ? 'Ты трогаешь в кармане открытку от Даши. Хоть кто-то помнит.' : 'Торта нет. Свечей нет. Обычный ужин.', 3.5); if (!alive(my)) return;
+      await say('Мама: Иди делай уроки. И не сиди до ночи за компом.', 4); if (!alive(my)) return;
+      roomOpen = true;
+      say('Иди в свою комнату (дверь «Комната Коча»).', 3.5);
+    })();
+  }
+  return {
+    cells, progress, coop: true,
+    interactables: [
+      ...TASKS.map((t, id) => ({ x: t.x, y: t.y, r: 1.5, label: t.label, active: () => !progress.got.has(id), use() { if (guest) net.send({ type: 'act', kind: 'task', id }); else doTask(id); } })),
+      { x: 12.5, y: 1.6, r: 1.6, label: () => (roomOpen ? 'E — в свою комнату' : 'Сначала дела и ужин'),
+        use() { if (guest || !roomOpen || busy) return; busy = true; audio.door(); next(); } },
+    ],
+    onAct(m) {
+      const gq = net.remote.pos, t = TASKS[m.id];
+      if (m.kind === 'task' && gq && t && Math.hypot(gq.x - t.x, gq.y - t.y) < 2.8) doTask(m.id);
+    },
+    begin(my) {
+      audio.hum(false);
+      chapter(6, 'Вечер');
+      (async () => {
+        await say('Вечер. Ты дома. Пахнет пирожками.', 3); if (!alive(my)) return;
+        await say('Мама: Коч, пока ужин греется: помой руки, найди бабушке очки, включи папе футбол и покорми кота!', 6);
+      })();
+    },
+    update(dt) {
+      if (guest && net.snap) {
+        const had = progress.count();
+        progress.fromArray(net.snap.it.filter((i) => i < TASKS.length));
+        if (progress.count() !== had) { hud(); if (progress.count() > had) audio.pickup(); }
+      }
+      glasses.visible = !progress.got.has(1);
+      glasses.rotation.y += dt;
+      for (const f of Object.values(fam)) faceToward(f, player.x * S, player.y * S);
+      faceToward(bro, player.x * S, player.y * S);
+      bro.position.x = wp(6) + Math.sin(gameTime * 0.8) * 1.5;
+      animateFigure(bro, gameTime, true, false);
+      cat.rotation.y = Math.sin(gameTime * 0.5) * 0.6;
+    },
+  };
+}
+
+// ---------- DLC scene: Koch at his PC ----------
+const CHAT_SCRIPT = [
+  { them: 'Коч, ты где был?? Я ждал тебя у выхода после 4 урока.', reply: 'Я сам там стоял! Это ты пропал!' },
+  { them: 'Я провалился… Долго объяснять. Я в больнице. В дурке, короче. Палата 6.', reply: 'Чего?! Ты прикалываешься?' },
+  { them: 'Врачи говорят, тебя нет. Что я тебя придумал. И КС 1.6 тоже.', reply: 'Я есть! Я тебе пишу!' },
+  { them: 'Я не прикалываюсь. Загугли «палата 6». И это… с днём рождения.', reply: 'Ладно…' },
+];
+const SEARCHES = [
+  ['как поднять ранг в кс 1.6', ['Совет №1: не играй в стендофф.', 'Совет №2: AWP решает всё.', 'Форум: «а в 1.6 разве есть ранги?» (437 ответов)']],
+  ['бекрумс через унитаз', ['Ответы: «не пробовал, но звучит как 1.6 после полуночи» — 40 лайков', 'Статья: «Бекрумс: почему подростки видят жёлтые коридоры»', 'Видео: «ПРОВАЛИЛСЯ В БЕКРУМС (НЕ КЛИКБЕЙТ)» — 3 просмотра']],
+  ['палата 6', ['Больница №6: «Палата 6. Пациент, 14 лет. Диагноз: видения. Уверяет, что провалился в бекрумс вместе с другом Кочем.»', 'Форум «Мамы»: «Сын говорит, что дружит с мальчиком Кочем. Врачи говорят — воображаемый друг.»', 'Новости: «Пациент больницы №6 требует установить в палате КС 1.6»']],
+  ['коч существует?', ['Ответы: «да» — 1 голос (твой).', 'Тест «Существуете ли вы?» — пройдите за 2 минуты!', 'Картинки: мальчик в синей кофте. Это ты. Вполне настоящий.']],
+];
+let pcOpen = false;
+function closePC() {
+  if (!pcOpen) return;
+  pcOpen = false; $('pc').classList.remove('on'); $('pc').innerHTML = '';
+  player.frozen = false;
+  if (started && !ended && !paused) requestLock();
+}
+addEventListener('keydown', (e) => { if (e.code === 'Escape' && pcOpen && cur && cur.pcClose) cur.pcClose(); });
+
+function buildKPc() {
+  const room = buildKochRoom(true);
+  placeRole([4, 5, 0], [3, 5, 0]);
+  const bro = FIG.brother(); bro.position.set(wp(2) + 0.9, 0.72, wp(1) - 0.25); bro.rotation.z = Math.PI / 2; room.g.add(bro);   // asleep on the bed
+  const st = { chat: [], step: 0, chatDone: false, revealed: false, finale: false, win: 'chat', bin: false, csBest: 0 };
+  let off = false;
+  const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  function render() {
+    const el = $('pc');
+    const ic = (id, emo, name, badge) => `<div class="ic" data-w="${id}"><i>${emo}</i>${name}${badge ? ' <b class="badge">!</b>' : ''}</div>`;
+    let body = '';
+    if (st.win === 'chat') {
+      body = st.chat.map((m) => `<div class="msg ${m.me ? 'me' : 'them'}">${m.me ? '' : '<u>Друг</u>'}${esc(m.t)}</div>`).join('');
+      const s = CHAT_SCRIPT[st.step];
+      if (!st.finale && s && st.chat.length && !st.chat[st.chat.length - 1].me) body += `<div class="opts"><button data-reply="1">${esc(s.reply)}</button></div>`;
+      else if (st.chatDone && !st.revealed) body += '<p class="dim">Друг не в сети. Он просил загуглить…</p>';
+    } else if (st.win === 'web') {
+      body = '<div class="search"><b>Поисковик</b><div class="sbox">Что ищем?</div>' +
+        SEARCHES.map(([q], i) => `<button data-q="${i}">🔍 ${esc(q)}</button>`).join('') + '</div><div id="res">' + (st.res || '') + '</div>';
+    } else if (st.win === 'cs') {
+      body = `<canvas id="cs" width="480" height="270"></canvas><p class="dim">Кликай по головам! Рекорд: ${st.csBest}</p><button data-cs="1">Новый раунд</button>`;
+    } else if (st.win === 'bin') {
+      body = st.bin ? '<p><b>от_друга.txt</b></p><p>«Коч, если ты настоящий — приходи в палату 6. Они говорят, тебя…» [файл повреждён]</p>' : '<p>📄 от_друга.txt</p><button data-bin="1">Открыть</button>';
+    }
+    const title = { chat: 'Мессенджер — Друг', web: 'Браузер', cs: 'Counter-Strike 1.6', bin: 'Корзина' }[st.win];
+    el.innerHTML = `<div class="scr${st.finale ? ' glitch' : ''}">` +
+      ic('chat', '💬', 'Мессенджер', st.step < CHAT_SCRIPT.length || st.finale) + ic('web', '🌐', 'Браузер') + ic('cs', '🔫', 'CS 1.6') + ic('bin', '🗑', 'Корзина') +
+      `<div class="win"><div class="tt"><span>${title}</span><span>_ □ ✕</span></div><div class="bd">${body}</div></div>` +
+      '<div class="bar"><button class="start">пуск</button><span>Коч_ПК</span><button class="up">Встать из-за компа (Esc)</button></div></div>';
+    el.querySelectorAll('[data-w]').forEach((n) => { n.onclick = () => { if (st.finale) return; st.win = n.dataset.w; render(); }; });
+    const rp = el.querySelector('[data-reply]'); if (rp) rp.onclick = reply;
+    el.querySelectorAll('[data-q]').forEach((n) => { n.onclick = () => search(Number(n.dataset.q)); });
+    const cb = el.querySelector('[data-cs]'); if (cb) cb.onclick = csRound;
+    const bb = el.querySelector('[data-bin]'); if (bb) bb.onclick = () => { st.bin = true; audio.sting(); say('Файл «от_друга.txt»: «Коч, если ты настоящий — приходи…»', 3.5); render(); };
+    el.querySelector('.up').onclick = () => { if (!st.finale) closePC(); };
+    if (st.win === 'chat') { const bd = el.querySelector('.bd'); bd.scrollTop = bd.scrollHeight; }
+  }
+  function pushThem(t) { st.chat.push({ t, me: false }); audio.beep(); say('Друг: ' + t, 4); }
+  function reply() {
+    const s = CHAT_SCRIPT[st.step]; if (!s) return;
+    st.chat.push({ t: s.reply, me: true }); st.step++;
+    if (st.step < CHAT_SCRIPT.length) { render(); wait(1.2).then(() => { if (pcOpen) { pushThem(CHAT_SCRIPT[st.step].them); render(); } }); }
+    else { st.chatDone = true; render(); maybeFinale(); }
+  }
+  function search(i) {
+    const [q, res] = SEARCHES[i];
+    st.res = `<p class="dim">Результаты по запросу «${esc(q)}»:</p>` + res.map((r) => `<div class="hit">${esc(r)}</div>`).join('');
+    render();
+    if (i === 2 && !st.revealed) {
+      st.revealed = true; audio.sting();
+      say('«…вместе с другом Кочем». Это про тебя. Врачи считают тебя его видением.', 4.5);
+      maybeFinale();
+    } else say(res[0], 3);
+  }
+  function maybeFinale() {
+    if (!st.revealed || !st.chatDone || st.finale) return;
+    const my = sid;
+    (async () => {
+      await wait(2.5); if (!alive(my)) return;
+      st.finale = true; st.win = 'chat'; pushThem('Коч. Если ты есть — приходи. Докажи им.'); render();
+      await wait(3.5); if (!alive(my)) return;
+      audio.sting();
+      pushThem('Только осторожно. Мои видения… кажется, они теперь и у тебя дома.'); render();
+      await wait(3); if (!alive(my)) return;
+      $('pc').querySelectorAll('.bd').forEach((b) => { b.innerHTML = '<h2 class="inside">' + 'ЕГО НЕТ '.repeat(16) + '</h2>'; });
+      await wait(1.5); if (!alive(my)) return;
+      pcOpen = false; $('pc').classList.remove('on'); $('pc').innerHTML = '';
+      off = true; room.screen.material.map = null; room.screen.material.color.setHex(0x000000); room.screen.material.needsUpdate = true;
+      player.frozen = true; audio.thud();
+      await say('Экран погас сам. В доме стало очень тихо.', 3.5); if (!alive(my)) return;
+      say('Голова тяжёлая. Ты засыпаешь прямо за столом…', 3);
+      await wait(3); if (!alive(my)) return;
+      if (started && !ended) requestLock();
+      next({ color: '#000000', ms: 1400 });
+    })();
+  }
+  function csRound() {
+    const cv = $('cs'); if (!cv) return;
+    const c = cv.getContext('2d');
+    const my = sid; let t = 0, score = 0, tgt = null;
+    const heads = ['Училка', 'Стендофер', 'Лёха', 'Петя'];
+    const spawn = () => { tgt = { x: 40 + Math.random() * 400, y: 60 + Math.random() * 170, n: heads[(Math.random() * heads.length) | 0], t: 0 }; };
+    spawn();
+    cv.onclick = (e) => {
+      const r = cv.getBoundingClientRect(), x = (e.clientX - r.left) * 480 / r.width, y = (e.clientY - r.top) * 270 / r.height;
+      audio.shot();
+      if (tgt && Math.hypot(x - tgt.x, y - tgt.y) < 26) { score++; spawn(); }
+    };
+    const draw = () => {
+      if (!alive(my) || !pcOpen || !document.body.contains(cv)) return;
+      drawCS(c, 480, 270);
+      if (tgt) {
+        c.fillStyle = '#f0c8a0'; c.beginPath(); c.arc(tgt.x, tgt.y, 22, 0, 7); c.fill();
+        c.fillStyle = '#fff'; c.font = 'bold 14px Arial'; c.textAlign = 'center'; c.fillText(tgt.n, tgt.x, tgt.y - 30); c.textAlign = 'left';
+      }
+      c.fillStyle = '#ffb000'; c.font = 'bold 20px monospace'; c.fillText(`Хэдшоты: ${score}   ${Math.max(0, 15 - t).toFixed(1)}с`, 120, 40);
+      t += 1 / 60; if (tgt) { tgt.t += 1 / 60; if (tgt.t > 1.3) spawn(); }
+      if (t < 15) requestAnimationFrame(draw);
+      else {
+        st.csBest = Math.max(st.csBest, score); life.cs = Math.max(life.cs, score); cv.onclick = null;
+        say(score >= 10 ? `Коч: ${score} хэдшотов! Я про!` : `Коч: ${score}… Это мышка лагает.`, 3);
+        if (st.win === 'cs') render();
+      }
+    };
+    draw();
+  }
+  function sit() {
+    if (pcOpen) return;
+    pcOpen = true;
+    player.x = 6.2; player.y = 3.5; player.yaw = -Math.PI / 2; player.pitch = 0; player.frozen = true;
+    document.exitPointerLock && document.exitPointerLock();
+    $('pc').classList.add('on');
+    if (!st.chat.length) wait(0.8).then(() => { if (pcOpen) { pushThem(CHAT_SCRIPT[0].them); render(); } });
+    render();
+  }
+  return {
+    cells: room.cells,
+    pcClose() { if (!st.finale) closePC(); },
+    interactables: [
+      { x: 6.4, y: 3.5, r: 1.5, active: () => !pcOpen && !off, label: 'E — сесть за комп', use() { sit(); } },
+    ],
+    begin(my) {
+      audio.hum(false);
+      chapter(7, 'Комп');
+      (async () => {
+        await say('Ночь. Все спят. Комп гудит.', 3); if (!alive(my)) return;
+        if (!net.connected) { await say('Брат (сквозь сон): Коч, ты опять с другом переписываешься…', 3.5); if (!alive(my)) return; }
+        else { await say('Брат не спит и подглядывает за Кочем через плечо.', 3.5); if (!alive(my)) return; }
+        say(net.role === 'guest' ? 'Ты — брат. Смотри, что Коч делает за компом.' : 'Сядь за комп (E). Друг что-то написал.', 4, net.role === 'guest');
+      })();
+    },
+  };
+}
+
+// ---------- DLC scene: a childhood dream. You are small again, the room is huge, the photos float ----------
+const MEMORIES = [
+  ['4 года', '#f4c86a', 'Море. Мама держит тебя на руках. Ты кричишь: «Я Коч!» Мама смеётся: «Коч, Коч. Самый главный Коч».'],
+  ['7 лет', '#8ad08a', 'Качели. Рядом мальчик в зелёной кофте. Он говорит: «Давай дружить, когда страшно». Ты кивнул. Так у тебя появился друг.'],
+  ['10 лет', '#7ab0e8', 'Папа учит играть в CS 1.6: «Прицел на уровне головы, сын». Это был лучший день. Друг сидел рядом и болел за тебя.'],
+  ['13 лет', '#e8e8e8', 'Белая комната. Друга первый раз положили в больницу. Врач: «Кто такой Коч?» Ты стоишь за стеклом и машешь. Врач тебя не замечает.'],
+];
+function memoryTex(i) {
+  const [age, col] = MEMORIES[i];
+  return ctex(200, 150, (c, w, h) => {
+    c.fillStyle = col; c.fillRect(0, 0, w, h);
+    c.fillStyle = 'rgba(0,0,0,.25)';
+    if (i === 0) { c.fillStyle = '#3a7ac8'; c.fillRect(0, h * 0.55, w, h * 0.45); }
+    if (i === 1) { c.fillStyle = '#555'; c.fillRect(60, 30, 6, 90); c.fillRect(134, 30, 6, 90); c.fillRect(60, 30, 80, 6); }
+    if (i === 2) { c.fillStyle = '#222'; c.fillRect(40, 40, 120, 70); c.fillStyle = '#b99a63'; c.fillRect(46, 46, 108, 58); }
+    if (i === 3) { c.strokeStyle = '#aaa'; c.lineWidth = 3; c.strokeRect(20, 20, w - 40, h - 50); }
+    const kids = i === 3 ? [['#2f8f4a', 100]] : [['#2f8f4a', 80], ['#2b5fd6', 120]];
+    for (const [k, x] of kids) { c.fillStyle = k; c.fillRect(x - 10, 78, 20, 34); c.fillStyle = '#f0c8a0'; c.beginPath(); c.arc(x, 68, 10, 0, 7); c.fill(); }
+    c.fillStyle = '#111'; c.font = 'bold 18px Arial'; c.textAlign = 'center'; c.fillText(age, w / 2, h - 10);
+  });
+}
+function cutoutTex(color, name) {
+  return ctex(96, 192, (c, w, h) => {
+    c.fillStyle = '#c8a878'; c.fillRect(0, 0, w, h);
+    c.fillStyle = color; c.fillRect(18, 70, 60, 110);
+    c.fillStyle = '#f0c8a0'; c.beginPath(); c.arc(48, 44, 26, 0, 7); c.fill();
+    c.fillStyle = '#111'; c.fillRect(36, 40, 6, 6); c.fillRect(54, 40, 6, 6); c.fillRect(38, 56, 20, 3);
+    c.fillStyle = '#5a3a1a'; c.font = 'bold 13px Arial'; c.textAlign = 'center'; c.fillText(name, w / 2, h - 4);
+  });
+}
+function buildKDream() {
+  const rows = mk(12, 10, []);
+  const lv = setupLevel({
+    rows, H: 4.6, bg: 0x2a1830, ambient: 0xffd0e8, ai: 2.0, fog: [0x2a1830, 0.045],
+    wall: T.kochWall, floor: (w, h) => T.pcCarpet(w, h), ceil: (w, h) => T.ceiling(w, h),
+  });
+  const guest = net.role === 'guest';
+  const cells = lv.cells.map((r) => r.slice());
+  const g = new THREE.Group(); scene.add(g);
+  // giant things: you are small again
+  cells[1][1] = cells[1][2] = cells[1][3] = 0;
+  add(g, BOX(3 * S - 0.3, 1.2, 2.2), 0x6a4a2a, wp(2), 0.6, wp(1) - 0.1); add(g, BOX(3 * S - 0.4, 0.4, 2.1), 0x2b5fd6, wp(2), 1.4, wp(1) - 0.1);
+  for (const [ch, x, y, col] of [['К', 9, 2, '#e04040'], ['О', 10, 2, '#40a040'], ['Ч', 9.5, 2.8, '#4060e0']]) {
+    const t = ctex(64, 64, (c) => { c.fillStyle = col; c.fillRect(0, 0, 64, 64); c.fillStyle = '#fff'; c.font = 'bold 48px Arial'; c.textAlign = 'center'; c.fillText(ch, 32, 50); });
+    add(g, BOX(1.4, 1.4, 1.4), new THREE.MeshLambertMaterial({ map: t }), wp(x), y === 2.8 ? 2.1 : 0.7, wp(2)).rotation.y = x * 0.3;
+  }
+  cells[2][9] = cells[2][10] = 0;
+  const bear = new THREE.Group(); bear.position.set(wp(1), 0, wp(8)); g.add(bear);
+  add(bear, new THREE.SphereGeometry(0.9, 14, 10), 0x9a6a3a, 0, 0.9, 0); add(bear, new THREE.SphereGeometry(0.6, 14, 10), 0x9a6a3a, 0, 2.1, 0);
+  for (const s of [-1, 1]) add(bear, new THREE.SphereGeometry(0.22, 8, 8), 0x9a6a3a, s * 0.45, 2.6, 0);
+  cells[8][1] = 0;
+  // the birthday table, empty until you remember everything
+  for (const [x, y] of [[5, 4], [6, 4], [5, 5], [6, 5]]) cells[y][x] = 0;
+  add(g, BOX(2 * S - 0.3, 0.12, 2 * S - 0.3), 0xf4f4f4, 6 * S, 1.3, 5 * S);
+  add(g, BOX(0.2, 1.3, 0.2), 0x8a6a4a, 6 * S, 0.65, 5 * S);
+  const cake = cakeGroup(14); cake.position.set(6 * S, 1.36, 5 * S); cake.visible = false; g.add(cake);
+  const fam = [['#d04a7a', 'МАМА', 5.2, 3.6], ['#3d4b5c', 'ПАПА', 6.8, 3.6], ['#7a4fa0', 'БАБКА', 4.3, 5], ['#2b5fd6', 'БРАТ', 7.7, 5]].map(([col, n, x, y]) => {
+    const m = add(g, new THREE.PlaneGeometry(1.0, 2.0), new THREE.MeshLambertMaterial({ map: cutoutTex(col, n), side: THREE.DoubleSide }), x * S, 1.0, y * S);
+    m.visible = false; return m;
+  });
+  const frames = [];
+  const SPOTS = [[2, 6], [6, 2], [10, 5], [8, 8]];
+  SPOTS.forEach(([x, y], i) => {
+    const f = new THREE.Group(); f.position.set(wp(x), 1.4, wp(y)); g.add(f);
+    add(f, BOX(1.1, 0.85, 0.06), 0xffe9a0, 0, 0, 0);
+    add(f, new THREE.PlaneGeometry(0.95, 0.7), new THREE.MeshBasicMaterial({ map: memoryTex(i), side: THREE.DoubleSide }), 0, 0, 0.035);
+    const l = new THREE.PointLight(0xffe0a0, 2, 4, 2); f.add(l);
+    frames.push(f);
+  });
+  placeRole([3, 8, 0], [4, 8, 0]);
+  player.eye = 0.95;
+
+  let cakeOn = false, blown = false;
+  const tasks = taskSet(SPOTS.map(([x, y]) => ({ x: x + 0.5, y: y + 0.5, r: 1.5, label: 'E — вспомнить' })), (id) => {
+    life.photos = tasks.progress.count();
+    setItemsHud(`Воспоминания: ${tasks.progress.count()}/4`);
+    audio.sting();
+    say(`${MEMORIES[id][0]}. ${MEMORIES[id][2]}`, 6);
+    if (tasks.progress.ready()) { const my = sid; wait(6.5).then(() => { if (alive(my)) say('На столе появился торт. Четырнадцать свечей. Подойди и задуй их.', 4); }); }
+  });
+  setItemsHud('Воспоминания: 0/4');
+  function blow() {
+    if (guest || blown || !cakeOn) return;
+    blown = true; blowCandles(cake); audio.thud(); const my = sid;
+    (async () => {
+      await say('Ты задуваешь свечи. Все хлопают.', 3); if (!alive(my)) return;
+      await say('На торте кремом написано: «С ДНЁМ РОЖДЕНИЯ, КОЧ». Мама, папа, бабка, брат — все тут.', 5); if (!alive(my)) return;
+      audio.sting();
+      await say('Только за столом пустой стул. Стул друга. Его никто не позвал.', 4.5); if (!alive(my)) return;
+      await say('А фигуры семьи вдруг стали картонными. Это не твой сон. Это его видения.', 4); if (!alive(my)) return;
+      next({ color: '#000', ms: 1400 });
+    })();
+  }
+  return {
+    cells, coop: true, progress: tasks.progress, onAct: tasks.onAct,
+    interactables: [
+      ...tasks.interactables,
+      { x: 6, y: 6.4, r: 1.6, active: () => cakeOn && !blown, label: 'E — задуть свечи', use() { blow(); } },
+      { x: 1.5, y: 7.2, r: 1.3, label: 'E — обнять медведя', use() { say('Медведь Потапыч. Ты до сих пор с ним спишь. Только друг об этом знает. И никому не скажет.', 4.5); } },
+    ],
+    begin(my) {
+      audio.hum(false); audio.lowpass(true);
+      chapter(8, 'Детство');
+      (async () => {
+        await say('Тебе снится детство. Ты снова маленький. Всё вокруг огромное.', 4); if (!alive(my)) return;
+        await say('По комнате летают фотографии. Собери воспоминания.', 3.5);
+      })();
+    },
+    update(dt) {
+      if (tasks.sync()) setItemsHud(`Воспоминания: ${tasks.progress.count()}/4`);
+      frames.forEach((f, i) => {
+        f.visible = !tasks.progress.got.has(i);
+        f.position.y = 1.4 + Math.sin(gameTime * 1.5 + i) * 0.25;
+        f.rotation.y += dt * 0.8;
+      });
+      if (!cakeOn && tasks.progress.ready()) { cakeOn = true; cake.visible = true; fam.forEach((m) => { m.visible = true; }); }
+      if (cakeOn && !blown) flickerCandles(cake, gameTime);
+      for (const m of fam) faceToward(m, player.x * S, player.y * S);
+      player.eye = 0.95;
+    },
+  };
+}
+
+// ---------- DLC scene: the night. The same living room loops and falls apart (no enemies, no chase) ----------
+const NIGHT_WHISPERS = ['…кто это у нас дома?..', '…он опять говорит сам с собой…', '…его нет. Его нет. Его нет…', '…не корми его…', '…сынок?.. Нет. Не сынок.'];
+const NIGHT_NOTES = [['КОЧА НЕТ', 4, 1], ['ТЫ ЕГО ПРИДУМАЛ', 1, 4], ['ПАЛАТА 6', 9, 7], ['ПРИМИ ТАБЛЕТКИ', 13, 3]];
+
+function staticTex() {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 48;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  const g = c.getContext('2d'), img = g.createImageData(64, 48);
+  t.userData.redraw = () => {
+    for (let i = 0; i < img.data.length; i += 4) { const v = Math.random() * 255; img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+    g.putImageData(img, 0, 0); t.needsUpdate = true;
+  };
+  t.userData.redraw();
+  return t;
+}
+function familyPhotoTex() {
+  return ctex(256, 160, (c, w, h) => {
+    c.fillStyle = '#c9b48a'; c.fillRect(0, 0, w, h);
+    c.fillStyle = '#222'; c.font = 'bold 18px Arial'; c.textAlign = 'center'; c.fillText('СЕМЬЯ КОЧ', w / 2, 22);
+    [['#d04a7a', 30], ['#3d4b5c', 75], ['#7a4fa0', 120], ['#2b5fd6', 210]].forEach(([col, x]) => {
+      c.fillStyle = col; c.fillRect(x - 14, 80, 28, 60);
+      c.fillStyle = '#f0c8a0'; c.beginPath(); c.arc(x, 66, 13, 0, 7); c.fill();
+    });
+    c.strokeStyle = '#fff'; c.lineWidth = 2; c.setLineDash([4, 3]); c.strokeRect(150, 52, 32, 90);      // the cut-out spot
+    c.setLineDash([]); c.fillStyle = '#fff'; c.font = 'bold 28px Arial'; c.fillText('?', 166, 108);
+  });
+}
+// kitchen, table, sofa, TV and armchair of the Koch living room; sheet = covered with white sheets
+function homeFurniture(g, cells, sheet) {
+  const col = (c) => (sheet ? 0xd8d8d0 : c);
+  add(g, BOX(1.6, 0.9, 0.8), col(0xdedede), wp(1), 0.45, S + 0.4);                  // sink
+  add(g, BOX(1.4, 0.9, 0.8), col(0x444444), wp(3), 0.45, S + 0.4);                  // stove
+  add(g, BOX(1.2, 2.0, 0.8), col(0xf4f4f4), wp(5), 1.0, S + 0.4);                   // fridge
+  add(g, BOX(2.0, 0.1, 1.2), col(0x7a5a3a), wp(7), 0.75, wp(4)); add(g, BOX(0.14, 0.75, 0.14), col(0x5a3b2a), wp(7), 0.37, wp(4));
+  cells[4][7] = 0;
+  add(g, BOX(3.4, 0.9, 1.0), col(0x5a3b2a), wp(9), 0.45, wp(5)); add(g, BOX(3.4, 0.7, 0.3), col(0x4a2f20), wp(9), 1.2, wp(5) - 0.45);
+  cells[5][8] = cells[5][9] = cells[5][10] = 0;
+  add(g, BOX(2.0, 0.8, 0.5), col(0x222222), wp(9), 0.4, wp(7) + 0.7);               // TV stand + TV
+  const tvMat = glow(sheet ? 0x050505 : 0x2a4a6a);
+  add(g, BOX(1.6, 0.9, 0.08), tvMat, wp(9), 1.3, wp(7) + 0.75);
+  add(g, BOX(1.1, 1.0, 1.0), col(0x7a4fa0), wp(12), 0.5, wp(4));                    // armchair
+  cells[4][12] = 0;
+  return tvMat;
+}
+
+function buildKNight() {
+  const loop = Math.max(0, Math.min(L.NIGHT_LOOPS - 1, story.level));
+  const ward = loop >= 2, empty = loop === 3;
+  camera.fov = 75; camera.updateProjectionMatrix();
+  const rows = mk(15, 9, []);
+  const lv = setupLevel({
+    rows, H: 3.0,
+    bg: empty ? 0xf4f6f8 : 0x020203, ambient: empty ? 0xffffff : (ward ? 0xc8d8ff : 0xffd8a8), ai: [0.3, 0.22, 0.45, 2.8][loop],
+    fog: empty ? [0xf4f6f8, 0.06] : [0x020203, ward ? 0.07 : 0.09],
+    wall: ward ? T.padded : T.houseWall, floor: (w, h) => (ward ? T.lino(w, h) : T.rug(w, h)), ceil: (w, h) => (ward ? T.tile(w, h) : T.ceiling(w, h)),
+    lamps: ward, lampColor: 0xe8f4ff, lampAt: (x, y) => x % 5 === 2 && y % 4 === 2,
+  });
+  const guest = net.role === 'guest';
+  const cells = lv.cells.map((r) => r.slice());
+  const g = new THREE.Group(); scene.add(g);
+  const torch = new THREE.PointLight(0xffe2b0, empty ? 0 : 5, 8, 2); scene.add(torch);
+  const door = add(g, new THREE.PlaneGeometry(1.5, 2.3), empty ? 0xb8c0c8 : 0x6b4a2b, wp(12), 1.15, S + 0.03);
+  const dl = labelSprite(ward ? 'Палата №6' : 'Комната Коча', ward ? '#ffffff' : '#9fd0ff'); dl.position.set(wp(12), 2.7, S + 0.15); g.add(dl);
+  placeRole([1, 7, -Math.PI / 2], [2, 7, -Math.PI / 2]);
+
+  let unlocked = empty, busy = false, stepT = 4 + Math.random() * 4, whisperT = 6, scareCD = 0, flick = 0;
+  const interactables = [];
+  let tvTex = null, ringT = loop === 0 ? 1 : -1, hero = null, heroGone = false;
+  const stalkers = [];
+
+  if (loop < 2) {
+    const tvMat = homeFurniture(g, cells, loop === 1);
+    if (loop === 0) { tvTex = staticTex(); tvMat.map = tvTex; tvMat.color.setHex(0xffffff); tvMat.needsUpdate = true; }
+    add(g, new THREE.PlaneGeometry(1.6, 1.0), new THREE.MeshBasicMaterial({ map: familyPhotoTex() }), wp(8), 1.8, S + 0.03);
+  }
+  if (loop === 0) {
+    add(g, BOX(0.3, 0.12, 0.2), 0x9a1a1a, wp(7) + 0.4, 0.86, wp(4));                 // phone
+    interactables.push(
+      { x: 8.5, y: 1.6, r: 1.6, label: 'E — посмотреть на фото', use() { say('Семейное фото. Мама, папа, бабка, брат. А где ты? На твоём месте — пустота.', 4.5); } },
+      { x: 7.5, y: 4.5, r: 1.7, active: () => ringT >= 0, label: 'E — взять трубку',
+        use() {
+          ringT = -1; const my = sid;
+          (async () => {
+            await say('Мама (в трубке): Алло?.. Кто это?', 3); if (!alive(my)) return;
+            await say('Ты: Мам, это я, Коч! Где вы все?', 3); if (!alive(my)) return;
+            await say('Мама: …Мальчик, у нас нет сына по имени Коч. Не звони сюда больше.', 5); if (!alive(my)) return;
+            audio.beep(); await say('Короткие гудки.', 2.5); if (!alive(my)) return;
+            await say('Это не мама. Это видения друга. Ему врачи говорят то же самое: «Коча нет».', 4.5); if (!alive(my)) return;
+            unlocked = true; say('Иди в свою комнату. Там безопасно. Наверное.', 3.5);
+          })();
+        } },
+    );
+  } else if (loop === 1) {
+    const skin = 0xcfcfcf;
+    const fam = [[0xd04a7a, 1.65, 1, 1, 0], [0x3d4b5c, 1.85, 13, 2, 0], [0x7a4fa0, 1.5, 13, 7, Math.PI]];
+    if (!net.connected) fam.push([0x2b5fd6, 1.3, 6, 7, Math.PI]);
+    for (const [body, h, x, y, rot] of fam) {
+      const m = makeFigure({ h, body, skin, extra: hair(0x1a1a1a) });
+      m.rotation.y = rot + Math.PI;                       // face the wall
+      g.add(m);
+      stalkers.push({ m, x: x + 0.5, y: y + 0.5 });
+    }
+    add(g, BOX(0.4, 0.02, 0.3), 0xf4f4e8, wp(7), 0.81, wp(4));                        // note on the table
+    const nl = labelSprite('НЕ ОБОРАЧИВАЙСЯ', '#ff4040'); nl.position.set(wp(12), 3.0, S + 0.2); g.add(nl);
+    interactables.push({ x: 7.5, y: 4.5, r: 1.7, active: () => !unlocked, label: 'E — прочитать записку',
+      use() { unlocked = true; audio.sting(); say('Записка маминым почерком: «Не корми его. Не отвечай ему. Его нет.»', 5); } });
+  } else if (loop === 2) {
+    add(g, BOX(2.2, 0.5, 1.2), 0x8a8a90, wp(7), 0.3, wp(4)); add(g, BOX(2.1, 0.2, 1.1), 0xf4f4f4, wp(7), 0.65, wp(4));   // ward bed
+    cells[4][7] = 0;
+    add(g, BOX(3.4, 0.9, 1.0), 0x5a3b2a, wp(9), 0.45, wp(6)); cells[6][8] = cells[6][9] = cells[6][10] = 0;              // the old sofa, still here
+    add(g, BOX(0.6, 0.7, 0.6), 0xdedede, wp(5), 0.35, wp(4)); cells[4][5] = 0;
+    const pills = add(g, new THREE.CylinderGeometry(0.06, 0.06, 0.16, 10), 0xffffff, wp(5), 0.78, wp(4));
+    for (const [t, x, y] of NIGHT_NOTES) { const sp = labelSprite(t, '#c01818'); sp.position.set(wp(x), 1.8, wp(y)); sp.scale.set(2.2, 0.55, 1); g.add(sp); }
+    hero = FIG.hero(); hero.position.set(wp(12), 0, wp(2)); g.add(hero);
+    interactables.push({ x: 5.5, y: 4.5, r: 1.6, active: () => !unlocked, label: 'E — забрать таблетки',
+      use() { unlocked = true; pills.visible = false; flick = 1.5; say('Таблетки друга. На баночке: «Палата 6». Ты прячешь их в карман. Стены перестают дышать.', 4.5); } });
+  }
+  interactables.push({ x: 12.5, y: 1.6, r: 1.6,
+    label: () => (unlocked ? (empty ? 'E — открыть дверь палаты' : 'E — в свою комнату') : ['Дверь не открывается. Где-то звонит телефон…', 'Дверь заперта. На столе записка…', 'Заперто. На тумбочке чьи-то таблетки…'][loop]),
+    use() {
+      if (guest || !unlocked || busy) return;
+      busy = true; audio.door();
+      if (loop < L.NIGHT_LOOPS - 1) { story.level = loop + 1; enterState({ color: '#000', ms: 1100 }); } else next({ color: '#ffffff', ms: 1200 });
+    } });
+
+  const BEGIN = [
+    ['Ты просыпаешься. Ночь. Комп выключен.', 'В доме слишком тихо. Мама? Папа?', 'Где-то звонит телефон.'],
+    ['Ты снова в гостиной. Но ты же только что ушёл в свою комнату…', 'Мебель под простынями. Как будто тут давно никто не живёт.', 'Они стоят у стен. Не отворачивайся от них.'],
+    ['Снова гостиная. Стены мягкие. Пахнет лекарствами.', 'На стенах кто-то писал. Почерком друга.'],
+    ['Дом пустой. Белый. Как будто его никогда не было.', 'Ни мамы. Ни папы. Ни бабки. Ни Барсика.', 'Только дверь.'],
+  ][loop];
+  const fwd = new THREE.Vector3();
+  function scare(s) {
+    scareCD = 2.5; audio.caught(); fade(0.85, '#ffffff'); setTimeout(() => fade(0), 160);
+    const far = [[1, 1], [13, 1], [13, 7], [6, 7], [1, 4]].sort((a, b) => Math.hypot(b[0] - player.x, b[1] - player.y) - Math.hypot(a[0] - player.x, a[1] - player.y))[0];
+    s.x = far[0] + 0.5; s.y = far[1] + 0.5;
+    say(NIGHT_WHISPERS[(Math.random() * NIGHT_WHISPERS.length) | 0], 3);
+  }
+  return {
+    cells, interactables,
+    begin(my) {
+      audio.hum(false); audio.lowpass(loop === 1); audio.danger([0.1, 0.35, 0.25, 0][loop]);
+      chapter(9, loop ? `Ночь. Круг ${loop + 1}` : 'Ночь');
+      (async () => {
+        for (const line of BEGIN) { await say(line, 4); if (!alive(my)) return; }
+      })();
+    },
+    update(dt) {
+      torch.position.set(player.x * S, 1.6, player.y * S);
+      if (tvTex && Math.random() < 0.5) tvTex.userData.redraw();
+      if (ringT >= 0) { ringT -= dt; if (ringT <= 0) { ringT = 2.2; audio.beep(); setTimeout(() => audio.beep(), 180); } }
+      if (!empty) {
+        stepT -= dt;                                              // footsteps behind you
+        if (stepT <= 0) { stepT = 6 + Math.random() * 8; for (let i = 0; i < 3; i++) setTimeout(() => audio.step(), i * 380); }
+      }
+      if (loop === 1 || loop === 2) {
+        whisperT -= dt;
+        if (whisperT <= 0) { whisperT = 9 + Math.random() * 6; speak(NIGHT_WHISPERS[(Math.random() * NIGHT_WHISPERS.length) | 0], 0.1); }
+      }
+      if (loop === 2) {
+        camera.fov = 75 + Math.sin(gameTime * 0.9) * (unlocked ? 0.5 : 4); camera.updateProjectionMatrix();     // the walls breathe
+        if (lv.lampMat) { const f = flick > 0 ? (Math.random() < 0.5 ? 0.05 : 1) : 0.85; lv.lampMat.color.setRGB(f, f, f); }
+        if (flick > 0) flick -= dt;
+        if (hero && !heroGone && Math.hypot(player.x - 12.5, player.y - 2.5) < 3.5) {
+          heroGone = true; flick = 1.2; audio.sting();
+          say('Друг: Коч?.. Ты настоящий? Найди меня. Палата 6.', 3.5);
+          setTimeout(() => { if (hero) hero.visible = false; }, 700);
+        }
+        if (hero && !heroGone) faceToward(hero, player.x * S, player.y * S);
+      }
+      // loop 1: they only move while you are not looking
+      camera.getWorldDirection(fwd);
+      scareCD -= dt;
+      for (const s of stalkers) {
+        const dx = s.x - player.x, dy = s.y - player.y, d = Math.hypot(dx, dy) || 1e-3;
+        const seen = (fwd.x * dx + fwd.z * dy) / d > 0.6 && L.canSee(cells, player, s, 16);
+        if (!seen) {
+          if (d > 1.0) { const p = L.moveWithCollision(cells, s, -dx / d * 1.4 * dt, -dy / d * 1.4 * dt, 0.3); s.x = p.x; s.y = p.y; }
+          faceToward(s.m, player.x * S, player.y * S);
+        }
+        s.m.position.set(s.x * S, 0, s.y * S);
+        if (d < 1.2 && scareCD <= 0) scare(s);
+      }
+    },
+  };
+}
+
+// ---------- DLC ending: the same ward, seen from the other side ----------
+function buildKEnd() {
+  camera.fov = 75; camera.updateProjectionMatrix(); audio.lowpass(false);
+  const rows = mk(9, 9, []);
+  setupLevel({
+    rows, H: 3.0, bg: 0xdfe8f0, ambient: 0xe8f0ff, ai: 2.6, fog: [0xdfe8f0, 0.02],
+    wall: T.padded, floor: (w, h) => T.lino(w, h), ceil: (w, h) => T.tile(w, h), lamps: true, lampColor: 0xe8f4ff, lampAt: (x, y) => x === 4 && y === 4,
+  });
+  const cells = parseRows(rows).cells;
+  cells[4][3] = 0;
+  placeRole([3, 4, -Math.PI / 2], [5, 5, Math.PI]);
+  const g = new THREE.Group(); scene.add(g);
+  add(g, BOX(2.2, 0.5, 1.2), 0x8a8a90, wp(3), 0.3, wp(4));
+  add(g, BOX(2.1, 0.2, 1.1), 0xf4f4f4, wp(3), 0.65, wp(4));
+  add(g, BOX(0.5, 0.15, 0.9), 0xffffff, wp(3) - 0.75, 0.8, wp(4));
+  add(g, new THREE.PlaneGeometry(1.8, 1.4), glow(0x23304a), wp(3), 1.7, S + 0.03);
+  for (let i = -2; i <= 2; i++) add(g, BOX(0.05, 1.4, 0.05), 0x333333, wp(3) + i * 0.35, 1.7, S + 0.06);
+  const mirrorMat = new THREE.MeshBasicMaterial({ map: portraitTex(false) });
+  add(g, BOX(1.0, 1.3, 0.04), 0x9aa0a4, wp(6), 1.6, S + 0.02);
+  add(g, new THREE.PlaneGeometry(0.85, 1.15), mirrorMat, wp(6), 1.6, S + 0.05);
+  const door = add(g, new THREE.PlaneGeometry(1.4, 2.3), 0x9aa0a4, wp(4), 1.15, 8 * S - 0.03); door.rotation.y = Math.PI;
+  const board = add(g, new THREE.PlaneGeometry(1.3, 0.9), new THREE.MeshBasicMaterial({ map: ctex(256, 180, (c, w, h) => { c.fillStyle = '#f0f0e8'; c.fillRect(0, 0, w, h); c.fillStyle = '#222'; c.font = 'bold 20px Arial'; c.textAlign = 'center'; c.fillText('ПАЛАТА №6', w / 2, 40); c.font = '16px Arial'; c.fillText('Диагноз: видения', w / 2, 80); c.fillText('(уверяет, что дружит с «Кочем»)', w / 2, 110); }) }), wp(6.5), 1.7, 8 * S - 0.03);
+  board.rotation.y = Math.PI;
+  add(g, BOX(0.4, 0.5, 0.3), 0x222222, wp(1), 1.0, wp(2));
+  const mon = add(g, new THREE.PlaneGeometry(0.34, 0.2), glow(0x103010), wp(1), 1.05, wp(2) + 0.16);
+  if (net.role !== 'guest') { player.frozen = true; player.eye = 0.85; player.pitch = 1.1; player.yaw = Math.PI; }
+  let beepT = 0, standing = false, mirrorT = -1, revealed = false, open = false, busy = false;
+  function reveal(my) {
+    revealed = true;
+    (async () => {
+      audio.sting();
+      await say('В зеркале — ты. Коч. Синяя кофта, взъерошенный. Отражаешься. Значит, есть.', 4.5); if (!alive(my)) return;
+      await say('Видения были не твои. Это друг после бекрумса решил, что Коча нет.', 4.5); if (!alive(my)) return;
+      await say('А ты всё это время был настоящий.', 3.5); if (!alive(my)) return;
+      await say(net.connected ? 'Брат: Ну я же говорил, что ты настоящий. Ты ж мне вчера подзатыльник дал.' : 'Врач за дверью: Шестая палата опять рассказывает про Коча.', 4.5); if (!alive(my)) return;
+      await say('Голос за дверью: Друг на процедурах. Мальчик, ты к кому? К шестой? Выходи, проведу.', 4.5); if (!alive(my)) return;
+      open = true; say('Выйди в коридор (дверь за спиной).', 3);
+    })();
+  }
+  return {
+    cells,
+    interactables: [{ x: 4.5, y: 7.4, r: 1.5, active: () => open, label: 'E — выйти в коридор', use() { if (busy) return; busy = true; audio.door(); next(); } }],
+    begin(my) {
+      fade(0, '#ffffff'); audio.hum(false);
+      chapter(10, 'Палата №6');
+      (async () => {
+        await say('Ты открываешь глаза. Белый потолок. Тихо пищит аппарат.', 5); if (!alive(my)) return;
+        await say('Палата №6. Палата друга. Ты пришёл сквозь его видения — и уснул на его кровати.', 4.5); if (!alive(my)) return;
+        standing = true;
+        await say('Друг? Эй?.. Кровать пустая. Его куда-то увели.', 3.5); if (!alive(my)) return;
+        await say('На стене висит зеркало. Подойди к нему.', 4); if (!alive(my)) return;
+        mirrorT = 0;
+      })();
+    },
+    update(dt) {
+      beepT -= dt; if (beepT <= 0) { beepT = 1.2; audio.beep(); mon.material.color.setHex(0x40ff60); setTimeout(() => mon.material.color.setHex(0x103010), 150); }
+      if (standing && net.role !== 'guest') {
+        player.eye += (1.6 - player.eye) * Math.min(1, dt * 1.5);
+        player.pitch += (0 - player.pitch) * Math.min(1, dt * 1.5);
+        if (player.eye > 1.5 && player.frozen) { player.frozen = false; player.x = 3.5; player.y = 5.5; }
+      }
+      if (mirrorT >= 0 && !revealed) {
+        mirrorT += dt;
+        if (Math.hypot(player.x - 6.5, player.y - 1.5) < 2.2 || mirrorT > 20) reveal(sid);
+      }
+    },
+  };
+}
+
+// ---------- DLC scene: the hospital corridor. Everyone from the friend's visions is here, and they all see Koch ----------
+function buildKHall() {
+  camera.fov = 75; camera.updateProjectionMatrix(); audio.lowpass(false);
+  const rows = mk(26, 7, []);
+  const lv = setupLevel({
+    rows, H: 3.0, bg: 0xdfe8f0, ambient: 0xe8f0ff, ai: 2.4, fog: [0xdfe8f0, 0.03],
+    wall: T.padded, floor: (w, h) => T.lino(w, h), ceil: (w, h) => T.tile(w, h), lamps: true, lampColor: 0xe8f4ff, lampAt: (x, y) => x % 4 === 1 && y === 3,
+  });
+  const cells = lv.cells.map((r) => r.slice());
+  const g = new THREE.Group(); scene.add(g);
+  for (const [x, top, name] of [[4, true, 'Палата №5'], [7, false, 'Палата №6'], [10, true, 'Процедурная'], [13, false, 'Пост'], [16, true, 'Столовая'], [19, false, 'Ординаторская'], [22, true, 'Кабинет врача']]) {
+    const z = top ? S + 0.03 : 6 * S - 0.03;
+    const d = add(g, new THREE.PlaneGeometry(1.4, 2.3), 0x9aa0a4, wp(x), 1.15, z); if (!top) d.rotation.y = Math.PI;
+    const l = labelSprite(name, '#334455'); l.position.set(wp(x), 2.6, top ? S + 0.2 : 6 * S - 0.2); g.add(l);
+  }
+  const end = add(g, new THREE.PlaneGeometry(1.6, 2.4), glow(0xfff2d8), 25 * S - 0.03, 1.2, wp(3)); end.rotation.y = -Math.PI / 2;
+  const el = labelSprite('Комната свиданий', '#a06010'); el.position.set(25 * S - 0.2, 2.8, wp(3)); g.add(el);
+  cells[5][12] = cells[5][13] = 0;
+  add(g, BOX(2 * S - 0.3, 1.0, 1.0), 0xc8ccd0, 13 * S, 0.5, wp(5));                      // nurse post
+  add(g, new THREE.PlaneGeometry(1.2, 0.8), new THREE.MeshBasicMaterial({ map: signTex([['ЖУРНАЛ', 24], ['П.6: посетитель', 18], ['«говорит, что он Коч»', 16, '#a01010']]) }), 13 * S, 1.7, 6 * S - 0.03).rotation.y = Math.PI;
+  const people = [
+    [npc('Санитар Лёша', 0x6a4ac0, 1.8), 5, 2],
+    [nurseFig('Медсестра'), 13, 4],
+    [npc('Пациент Стас', 0xe0782a, 1.6, 0x1d1d22), 16, 2],
+    [npc('Уборщица Нина', 0x7a4fa0, 1.5, 0x9a68c8), 19, 4],
+    [catFig('Барсик'), 21, 5],
+    [FIG.classmate('Практикантка Даша', 0xd04a7a), 23, 2],
+  ];
+  for (const [m, x, y] of people) { m.position.set(wp(x), 0, wp(y)); g.add(m); }
+  const LINES = [
+    () => ['Санитар Лёша: Ты к шестой? Он про тебя каждый день рассказывает. Говорит, тебя нет.', 'Лёша: А ты вон, стоишь. Я тебя вижу. Значит, врачи опять перепутали.'],
+    () => ['Медсестра: Твой друг меня «Училкой» зовёт. Говорит, в бекрумсе я за ним гонялась.',
+      life.answer === 'КОЧ' ? 'Медсестра: И на стенах пишет «2+2=КОЧ». Говорит, это ты научил. Вижу — правда ты.' : 'Медсестра: Он говорит, ты примеры лучше всех решаешь. ' + (life.answer === '4' ? 'Похоже на правду.' : 'Ну, почти.')],
+    () => ['Пациент Стас: Ты Коч? Тот самый, который в 1.6 тащит? Он нам все уши прожужжал.',
+      life.duel === 'win' ? 'Стас: Он говорил, ты стендофера в столовой уделал. Я не верил. Теперь верю.' : 'Стас: Он говорил, ты стендоферу дуэль слил. Реванш с AWP, давай, я жду.'],
+    () => ['Уборщица Нина: Привет-привет-привет, внучек…', 'Нина: Ой, ты ж не внучек. Ты Коч! Друг твой про тебя рассказывал. Очки мои не видал?'],
+    () => ['Больничный кот Барсик. Он и правда смотрит сквозь тебя.', 'Он так на всех смотрит. Это просто кот. Самый настоящий кот в этой истории.'],
+    () => [life.card ? 'Практикантка Даша: Коч! Друг попросил передать — он тоже тебе открытку подписал. «КОЧУ. НАСТОЯЩЕМУ».' : 'Практикантка Даша: Ты Коч? С днём рождения! Друг весь день про это твердил.',
+      'Даша: Иди скорее в комнату свиданий. Там уже ждут. С тортом.'],
+  ];
+  const tasks = taskSet(people.map(([, x, y]) => ({ x: x + 0.5, y: y + 0.5, r: 1.6, label: 'E — присмотреться' })), (id) => {
+    life.known = tasks.progress.count();
+    setItemsHud(`Узнано людей: ${tasks.progress.count()}/6`);
+    const my = sid, [a, b] = LINES[id]();
+    (async () => { await say(a, 4); if (!alive(my)) return; await say(b, 4.5); })();
+  });
+  setItemsHud('Узнано людей: 0/6');
+  placeRole([1, 3, -Math.PI / 2], [1, 2, -Math.PI / 2]);
+  let busy = false;
+  return {
+    cells, coop: true, progress: tasks.progress, onAct: tasks.onAct,
+    interactables: [
+      ...tasks.interactables,
+      { x: 24.4, y: 3.5, r: 1.4, label: () => (tasks.progress.count() >= 4 ? 'E — в комнату свиданий' : `Сначала осмотрись (узнано ${tasks.progress.count()}/4)`),
+        use() { if (net.role === 'guest' || busy || tasks.progress.count() < 4) return; busy = true; audio.door(); next({ color: '#ffffff', ms: 1000 }); } },
+    ],
+    begin(my) {
+      audio.hum(true);
+      chapter(11, 'Коридор');
+      (async () => {
+        await say('Больничный коридор. Пахнет хлоркой и котлетами. Как в школьной столовой.', 4); if (!alive(my)) return;
+        await say('Лица вокруг… знакомые. Из видений друга. Присмотрись к каждому.', 3.5);
+      })();
+    },
+    update() {
+      if (tasks.sync()) setItemsHud(`Узнано людей: ${tasks.progress.count()}/6`);
+      for (const [m] of people) faceToward(m, player.x * S, player.y * S);
+    },
+  };
+}
+
+// ---------- DLC finale: the visiting room, the real birthday and one wish ----------
+function lifeSummary() {
+  const out = [
+    life.porridge ? 'съел манку с комочками' : '',
+    life.late ? 'опоздал в школу' : 'успел к звонку',
+    life.wet ? 'промочил кроссовки' : '',
+    life.duel === 'win' ? 'выиграл дуэль у Стендофера' : (life.duel ? 'проиграл дуэль Стендоферу' : ''),
+    life.card ? 'получил открытку от Даши' : '',
+    life.answer ? `написал на доске «2+2=${life.answer}»` : '',
+    `${life.cs} хэдшотов в CS 1.6`,
+    `вспомнил ${life.photos}/4 детских фото`,
+    `узнал ${life.known}/6 людей в больнице`,
+  ].filter(Boolean);
+  return 'Твой день: ' + out.join(', ') + '.';
+}
+const END_STAY = 'КОНЕЦ: ВЕЧНОЕ УТРО';
+const END_GO = 'КОНЕЦ: С ДНЁМ РОЖДЕНИЯ, КОЧ';
+function buildKFinal() {
+  camera.fov = 75; camera.updateProjectionMatrix(); audio.lowpass(false);
+  const rows = mk(11, 9, []);
+  const lv = setupLevel({
+    rows, H: 3.0, bg: 0x1a120a, ambient: 0xffe2b8, ai: 2.3, fog: [0x1a120a, 0.02],
+    wall: T.houseWall, floor: (w, h) => T.rug(w, h), ceil: (w, h) => T.ceiling(w, h), lamps: true, lampColor: 0xffd890, lampAt: (x, y) => x === 5 && y === 2,
+  });
+  const cells = lv.cells.map((r) => r.slice());
+  const g = new THREE.Group(); scene.add(g);
+  cells[4][5] = 0;
+  add(g, BOX(2.0, 0.1, 1.6), 0xf4f4f4, wp(5), 0.8, wp(4)); add(g, BOX(0.16, 0.8, 0.16), 0x8a6a4a, wp(5), 0.4, wp(4));
+  const cake = cakeGroup(14); cake.position.set(wp(5), 0.85, wp(4)); g.add(cake);
+  const gift = add(g, BOX(0.4, 0.3, 0.3), 0x2b5fd6, wp(5) + 0.7, 1.0, wp(4) - 0.4);
+  add(g, BOX(0.42, 0.06, 0.06), 0xffe36a, wp(5) + 0.7, 1.16, wp(4) - 0.4);
+  const win = add(g, new THREE.PlaneGeometry(1.8, 1.4), glow(0x9fc8ff), wp(8), 1.7, S + 0.03);
+  for (let i = -2; i <= 2; i++) add(g, BOX(0.05, 1.4, 0.05), 0x333333, wp(8) + i * 0.35, 1.7, S + 0.06);
+  const banner = labelSprite('С ДР, КОЧ!', '#ffe36a'); banner.position.set(wp(4), 2.5, S + 0.2); banner.scale.set(3.2, 0.8, 1); g.add(banner);
+  const mom = npc('Мама', 0xd04a7a, 1.65, 0x5a3418); mom.position.set(wp(4) + 0.4, 0, wp(3)); g.add(mom);
+  const dad = npc('Папа', 0x3d4b5c, 1.85); dad.position.set(wp(6) - 0.4, 0, wp(3)); g.add(dad);
+  const bro = npc('Брат', 0x2b5fd6, 1.3); bro.userData.partnerNpc = true; bro.position.set(wp(7), 0, wp(4) + 0.3); g.add(bro);
+  const pal = FIG.hero(); pal.position.set(wp(8), 0, wp(1) + 0.4); pal.visible = false; g.add(pal);
+  placeRole([5, 7, 0], [4, 7, 0]);
+  const guest = net.role === 'guest';
+  let phase = 0;       // 0 talk, 1 make a wish, 2 done
+
+  function finish(stay, summary) {
+    ended = true; document.exitPointerLock && document.exitPointerLock();
+    const body = stay
+      ? '<p>Ты загадал, чтобы этот день не кончался. Завтра снова 12 ноября. И послезавтра. Манка, двор, дуэль, комп. Навсегда.</p>'
+      : '<p>Тебя зовут Коч. Тебе четырнадцать, ты самый настоящий, и твой друг наконец в это поверил. А в КС 1.6 вы теперь тащите вдвоём.</p>';
+    showOverlay(`<h1>${stay ? 'ВЕЧНОЕ УТРО' : 'С ДНЁМ РОЖДЕНИЯ'}</h1>${body}${summary ? `<p>${summary}</p>` : ''}<p>Есть и вторая концовка. Загадай другое желание.</p><b>Кликни, чтобы вернуться в меню</b>`,
+      () => { location.href = location.pathname; });
+  }
+  function wish(stay) {
+    if (guest || phase !== 1) return;
+    phase = 2; player.frozen = true; blowCandles(cake); audio.thud();
+    const my = sid;
+    (async () => {
+      await say('Ты закрываешь глаза. Загадываешь. Дуешь.', 3); if (!alive(my)) return;
+      if (stay) {
+        await say('Друг: Давай. Каждый день — твой день рождения. Ты и я. Навсегда.', 3.5); if (!alive(my)) return;
+        audio.sting(); fade(0.6, '#ffffff');
+        await say('Мама улыбается… и застывает. Как картинка. Видения друга снова сильнее.', 4.5); if (!alive(my)) return;
+        fade(1, '#000');
+        await say('Будильник: ПИ-ПИ-ПИ-ПИ! Мама (с кухни): КОЧ! В школу проспишь!', 4); if (!alive(my)) return;
+      } else {
+        await say('Друг осторожно тыкает тебя пальцем в плечо. Потом ещё раз.', 3.5); if (!alive(my)) return;
+        await say('Друг: …Тёплый. Ты правда настоящий. Это я всё перепутал. Бекрумс, училки… а ты — нет.', 4.5); if (!alive(my)) return;
+        await say('Врач в дверях долго смотрит на тебя. Потом что-то зачёркивает в карте.', 4); if (!alive(my)) return;
+        await say('Мама обнимает вас обоих. Торт режут на пятерых.', 4); if (!alive(my)) return;
+        await say(net.connected ? 'Брат: С днюхой, Коч. Как его выпишут — в 1.6 втроём.' : 'Папа: Доктор сказал, его на Новый год выпишут. Будете в 1.6 вдвоём.', 4); if (!alive(my)) return;
+      }
+      await say(stay ? END_STAY : END_GO, 2.5); if (!alive(my)) return;
+      finish(stay, lifeSummary());
+    })();
+  }
+  return {
+    cells,
+    interactables: [
+      { x: 4.2, y: 4.5, r: 0.9, active: () => phase === 1, label: 'E — загадать: «Пусть этот день не кончается»', use() { wish(true); } },
+      { x: 6.8, y: 4.5, r: 0.9, active: () => phase === 1, label: 'E — загадать: «Пусть друг поверит в меня»', use() { wish(false); } },
+      { x: 5.9, y: 3.4, r: 0.9, active: () => phase === 1, label: 'E — посмотреть подарок',
+        use() { say('Диск «Counter-Strike 1.6». Настоящий, в коробке. Подписан: «Кочу от папы».', 4); } },
+    ],
+    netSay(text) {
+      if (text === END_STAY || text === END_GO) finish(text === END_STAY, '');
+    },
+    begin(my) {
+      audio.hum(false);
+      chapter(12, 'День рождения');
+      (async () => {
+        await say('Комната свиданий. Пахнет пирожками. Как дома.', 3.5); if (!alive(my)) return;
+        await say('Мама: Коч! С днём рождения, сынок. Четырнадцать! Решили отметить тут, с твоим другом.', 4.5); if (!alive(my)) return;
+        await say('Папа: Мы помним. Утром просто сюрприз готовили.', 4); if (!alive(my)) return;
+        await say(net.connected ? 'Брат принёс тебе подарок. Он стоит рядом и делает вид, что это не он.' : 'Брат: Я тебе подарок принёс. Он на столе.', 3.5); if (!alive(my)) return;
+        pal.visible = true; audio.sting();
+        await say('У окна стоит друг. Зелёная кофта. Смотрит на тебя, как на привидение.', 4.5); if (!alive(my)) return;
+        await say('Друг: Коч?.. Мне сказали, тебя нет. Ну… задувай свечи. Загадай желание. Только одно.', 4.5); if (!alive(my)) return;
+        phase = 1;
+        say('Подойди к торту: слева — чтобы день не кончался, справа — чтобы друг поверил.', 4);
+      })();
+    },
+    update(dt) {
+      if (phase < 2) flickerCandles(cake, gameTime);
+      gift.rotation.y += dt * 0.5;
+      for (const m of [mom, dad, bro]) faceToward(m, player.x * S, player.y * S);
+      if (pal.visible) faceToward(pal, player.x * S, player.y * S);
+    },
+  };
+}
+
+// =====================================================================
+// Movement / interaction / main loop
+// =====================================================================
+function movePlayer(dt) {
+  if (!cur || !cur.cells) return;
+  if (keys.ArrowLeft) player.yaw += 1.8 * dt;
+  if (keys.ArrowRight) player.yaw -= 1.8 * dt;
+  if (pressed.has('ShiftLeft') || pressed.has('ShiftRight')) player.sprint = !player.sprint;   // sprint is a toggle
+  if (player.frozen || player.hidden) return;
+  let f = 0, r = 0;
+  if (keys.KeyW || keys.ArrowUp) f++;
+  if (keys.KeyS || keys.ArrowDown) f--;
+  if (keys.KeyD) r++;
+  if (keys.KeyA) r--;
+  f += joy.f; r += joy.r;
+  const len = Math.hypot(f, r);
+  const inBack = story.state === story.play;
+  if (inBack) {
+    if (player.tired && player.stamina > 0.3) player.tired = false;
+  }
+  const wantRun = player.sprint && len > 0 && !player.tired && (!inBack || player.stamina > 0.02);
+  if (inBack) {
+    player.stamina = Math.max(0, Math.min(1, player.stamina + (wantRun ? -0.25 : 0.15) * dt));
+    if (player.stamina <= 0.02 && wantRun) player.tired = true;
+    $('stam').firstElementChild.style.background = wantRun ? '#ff9a3c' : '';
+    $('stam').firstElementChild.style.width = (player.stamina * 100) + '%';
+  }
+  if (!len || player.tired) player.sprint = false;     // stop sprinting when you stop or run out of breath
+  if (!len) return;
+  const inW = !!(cur.inWater && cur.inWater(player.x, player.y));
+  const speed = (wantRun ? 3.4 : 2.0) * (inW ? 0.55 : 1);
+  const fx = -Math.sin(player.yaw), fy = -Math.cos(player.yaw);
+  const rx = Math.cos(player.yaw), ry = -Math.sin(player.yaw);
+  const vx = (fx * f + rx * r) / len * speed * dt;
+  const vy = (fy * f + ry * r) / len * speed * dt;
+  const p = L.moveWithCollision(cur.cells, player, vx, vy, 0.28);
+  const moved = Math.hypot(p.x - player.x, p.y - player.y);
+  player.x = p.x; player.y = p.y;
+  player.bob += moved * 7;
+  player.stepDist += moved;
+  if (player.stepDist > 0.9) {
+    player.stepDist = 0;
+    if (inW) { audio.splash(); if (cur.noise) cur.noise(player.x, player.y); } else audio.step();
+  }
+}
+
+function updateInteract() {
+  if (!cur || !cur.interactables || !cur.interactables.length) { setHint(''); return; }
+  let best = null, bd = 1e9;
+  for (const it of cur.interactables) {
+    if (player.hidden && !it.hide) continue;
+    if (it.active && !it.active()) continue;
+    const d = Math.hypot(player.x - it.x, player.y - it.y);
+    if (d < it.r && d < bd) { best = it; bd = d; }
+  }
+  if (!best) { setHint(''); return; }
+  setHint(typeof best.label === 'function' ? best.label() : best.label);
+  if (pressed.has('KeyE')) best.use();
+}
+
+function syncCamera() {
+  if (cur && cur.freeCamera) return;
+  const bob = Math.sin(player.bob) * 0.04;
+  camera.position.set(player.x * S, player.eye + bob, player.y * S);
+  camera.rotation.set(player.pitch, player.yaw, 0);
+}
+
+let last = performance.now();
+renderer.setAnimationLoop((now) => {
+  const dt = Math.min(0.05, (now - last) / 1000);
+  last = now;
+  if (!paused && cur) {
+    gameTime += dt;
+    tickWaits(dt); tickSub(dt);
+    movePlayer(dt);
+    if (TOUCH) $('tRun').classList.toggle('hot', player.sprint);
+    if (cur.update) cur.update(dt);
+    updateInteract();
+    netTick(dt);
+  }
+  syncCamera();
+  renderer.render(scene, camera);
+  pressed.clear();
+});
+
+// =====================================================================
+// Co-op (PeerJS data channel; host runs the story, guest plays Koch)
+// =====================================================================
+const CHAT = ['Сюда!', 'Берегись!', 'Нашёл!', 'Помоги!'];
+let avatar = null, bubble = null, bubbleT = 0, avPrev = null, chatTimer = 0;
+const r3 = (v) => Math.round(v * 1000) / 1000;
+const wrapYaw = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+
+function sceneMsg(color) {
+  const m = { type: 'scene', state: story.state, level: story.level, seed: seed >>> 0, sid };
+  if (color) m.color = color;
+  return m;
+}
+function partnerFig() {
+  if (isDlc()) return net.role === 'host' ? FIG.kochfam('Брат Коч') : FIG.koch();
+  return net.role === 'host'
+    ? FIG.koch()
+    : makeFigure({ h: 1.7, body: 0x2f8f4a, label: 'Напарник', labelColor: '#a8ffb8', extra: hair(0x222222) });
+}
+// what this side calls the other player
+const partnerName = () => (isDlc() ? (net.role === 'host' ? 'Брат' : 'Коч') : (net.role === 'host' ? 'Коч' : 'Напарник'));
+function removeAvatar() { if (avatar) scene.remove(avatar); avatar = null; bubble = null; avPrev = null; }
+function attachAvatar() {
+  removeAvatar();
+  net.remote.interp = new KochNet.Interp(net.role === 'host' ? 100 : 150);
+  net.remote.hidden = false;
+  avatar = partnerFig(); avatar.userData.partnerNpc = false; avatar.visible = false;
+  scene.add(avatar);
+}
+function hidePartnerNpcs() { scene.traverse((o) => { if (o.userData && o.userData.partnerNpc) o.visible = false; }); }
+function chatLine(who, text) {
+  const el = $('chatlog'); el.textContent = `${who}: ${text}`; el.style.display = 'block';
+  clearTimeout(chatTimer); chatTimer = setTimeout(() => { el.style.display = 'none'; }, 3500);
+}
+function showBubble(text) {
+  if (!avatar) return;
+  if (bubble) avatar.remove(bubble);
+  bubble = labelSprite(text, '#ffffff'); bubble.position.set(0, 2.6, 0); avatar.add(bubble); bubbleT = 3;
+}
+function buildSnap(now) {
+  const en = cur && cur.enemies ? cur.enemies.map((e) => [r3(e.logic.x), r3(e.logic.y), { patrol: 0, chase: 1, search: 2 }[e.logic.state] || 0]) : [];
+  const pr = cur && cur.progress;
+  return { type: 'snap', t: now, hp: [r3(player.x), r3(player.y), r3(wrapYaw(player.yaw)), r3(player.pitch), player.hidden ? 1 : 0], en, it: pr ? pr.toArray() : [], ex: pr && pr.ready() ? 1 : 0 };
+}
+function netTick(dt) {
+  if (TOUCH) $('tchat').style.display = net.connected ? 'flex' : 'none';
+  if (net.role === 'solo' || !net.connected) return;
+  const now = performance.now();
+  if (!net.busy) {
+    if (net.role === 'host' && now - net.snapAt >= 66) { net.snapAt = now; net.send(buildSnap(now)); }
+    if (net.role === 'guest' && now - net.posAt >= 50 && cur && cur.cells) {
+      net.posAt = now;
+      net.send({ type: 'pos', x: r3(player.x), y: r3(player.y), yaw: r3(wrapYaw(player.yaw)), pitch: r3(player.pitch), hid: player.hidden ? 1 : 0 });
+    }
+  }
+  for (let i = 0; i < 4; i++) if (pressed.has('Digit' + (i + 1))) { net.send({ type: 'chat', i }); chatLine('Ты', CHAT[i]); }
+  if (!avatar || !net.remote.interp) return;
+  const sm = net.remote.interp.sample(now);
+  avatar.visible = !!sm && !net.remote.hidden && !(cur && cur.freeCamera);
+  if (sm) {
+    avatar.position.set(sm.x * S, 0, sm.y * S);
+    avatar.rotation.y = sm.yaw + Math.PI;
+    const moving = !!avPrev && Math.hypot(sm.x - avPrev.x, sm.y - avPrev.y) > 0.004;
+    avPrev = sm;
+    animateFigure(avatar, gameTime, moving, false);
+  }
+  if (bubbleT > 0) { bubbleT -= dt; if (bubbleT <= 0 && bubble) { avatar.remove(bubble); bubble = null; } }
+}
+
+function onNetMsg(m) {
+  const host = net.role === 'host', guest = net.role === 'guest';
+  switch (m.type) {
+    case 'bye': if (guest) lostHost(); break;
+    case 'hello': {
+      if (!guest) break;
+      const r = $('joinRole');
+      if (r) r.textContent = m.mode === 'dlc' ? 'DLC «Вторая личность»: ты играешь за брата Коча.' : 'Ты играешь за Коча.';
+      break;
+    }
+    case 'pos': {
+      if (!host || net.busy || !cur || !cur.cells) break;
+      const row = cur.cells[Math.floor(m.y)];
+      if (!row || row[Math.floor(m.x)] !== 1) break;       // off-map or inside a wall: ignore
+      net.remote.pos = { x: m.x, y: m.y, hidden: m.hid };
+      net.remote.hidden = m.hid;
+      net.remote.interp && net.remote.interp.push(performance.now(), m);
+      break;
+    }
+    case 'act': if (host && cur && cur.onAct) cur.onAct(m); break;
+    case 'chat':
+      chatLine(partnerName(), CHAT[m.i]); showBubble(CHAT[m.i]);
+      break;
+    case 'scene':
+      if (!guest || !BUILDERS[m.state]) break;
+      { const md = m.state.startsWith('k_') ? 'dlc' : 'main'; if (story.mode !== md) story.reset(md); }
+      story.state = m.state; story.level = m.level; seed = m.seed;
+      enterState(m.color ? { color: m.color } : {});
+      break;
+    case 'snap':
+      if (!guest || net.busy) break;
+      net.snap = m;
+      net.remote.hidden = !!m.hp[4];
+      net.remote.interp && net.remote.interp.push(performance.now(), { x: m.hp[0], y: m.hp[1], yaw: m.hp[2] });
+      break;
+    case 'say':
+      if (!guest) break;
+      say(m.text, m.sec, true);
+      if (m.text.startsWith(DARK_TEXT) && cur && cur.netDark) cur.netDark();
+      if (cur && cur.netSay) cur.netSay(m.text);
+      break;
+    case 'caught':
+      if (!guest) break;
+      if (m.who === 'guest') { if (cur && cur.netCaught) cur.netCaught(); }
+      else bigMsg(isDlc() ? 'Коча поймали!' : 'Напарника поймали!', 1800);
+      break;
+    default: break;
+  }
+}
+
+function leaveNet() {
+  net.gen++;
+  const l = net.link; net.link = null;
+  if (l) { try { l.send({ type: 'bye' }); } catch (e) { /* closing anyway */ } setTimeout(() => l.close(), 150); }
+  net.role = 'solo'; net.connected = false; net.snap = null; net.remote.pos = null; net.remote.interp = null;
+  removeAvatar();
+}
+function lostHost() {
+  leaveNet();
+  if (!started) { showLobby('Комната занята или закрыта.'); return; }
+  paused = true; ended = true;
+  document.exitPointerLock && document.exitPointerLock();
+  showOverlay('<h1>СВЯЗЬ ПОТЕРЯНА</h1><p>Хост вышел из игры или комната закрыта.</p><b>Кликни — вернуться в меню</b>', () => location.reload());
+}
+function guestJoined() {
+  net.connected = true; net.remote.pos = null;
+  net.send({ type: 'hello', proto: 1, mode: story.mode });
+  net.send(sceneMsg());
+  attachAvatar(); hidePartnerNpcs();
+  const rm = $('roomMsg'); if (rm) rm.textContent = `${partnerName()} подключился! Можно начинать.`;
+  if (started) bigMsg(`${partnerName()} подключился!`, 2200);
+}
+function guestLeft() {
+  net.connected = false; net.remote.pos = null; removeAvatar();
+  const rm = $('roomMsg'); if (rm) rm.textContent = 'Напарник отключился. Ждём нового…';
+  if (started) bigMsg(`${partnerName()} отключился. Дальше ты один.`, 3000);
+}
+function hostRoom(tries = 0) {
+  leaveNet();
+  if (!window.Peer) { showLobby('Нет PeerJS: для игры вдвоём нужен интернет.'); return; }
+  const code = KochNet.makeRoomCode(Math.random);
+  net.role = 'host'; net.code = code;
+  const my = net.gen;
+  showOverlay(
+    `<h1>КОМНАТА</h1><p>Код для друга:</p><b class="code" id="roomCode">${code}</b>` +
+    '<p id="roomMsg">Создаём комнату…</p><div class="lobby"><button id="bGo">Начать игру</button><button id="bBack">Назад</button></div>'
+  );
+  $('bGo').onclick = start;
+  $('bBack').onclick = () => { leaveNet(); if (isDlc()) showDlcMenu(); else showLobby(); };
+  net.link = KochNet.createLink({
+    role: 'host', code,
+    onReady() { if (my !== net.gen) return; const rm = $('roomMsg'); if (rm) rm.textContent = `Ждём напарника… Друг вводит код и играет за ${isDlc() ? 'брата Коча' : 'Коча'}. Можно начинать сразу.`; },
+    onOpen() { if (my === net.gen) guestJoined(); },
+    onMsg(m) { if (my === net.gen) onNetMsg(m); },
+    onClose() { if (my === net.gen) guestLeft(); },
+    onError(e) {
+      if (my !== net.gen) return;
+      if (e === 'taken' && tries < 5) { hostRoom(tries + 1); return; }
+      if (!started) { leaveNet(); showLobby('Ошибка связи: ' + e); } else bigMsg('Ошибка связи: ' + e, 2500);
+    },
+  });
+  if (!net.link) { leaveNet(); showLobby('Нет PeerJS: для игры вдвоём нужен интернет.'); }
+}
+function joinRoom(raw) {
+  const code = KochNet.normalizeCode(raw);
+  const msg = (t) => { const e = $('lobbyMsg'); if (e) e.textContent = t; };
+  if (!code) { msg('Код — 5 символов (буквы и цифры).'); return; }
+  if (!window.Peer) { msg('Нет PeerJS: для игры вдвоём нужен интернет.'); return; }
+  leaveNet();
+  net.role = 'guest'; net.code = code;
+  const my = net.gen;
+  msg('Подключаемся…');
+  net.link = KochNet.createLink({
+    role: 'guest', code,
+    onOpen() {
+      if (my !== net.gen) return;
+      net.connected = true; net.send({ type: 'hello', proto: 1 });
+      showOverlay('<h1>ПОДКЛЮЧЕНО</h1><p id="joinRole">Ты играешь за Коча.</p><p>Хост ведёт историю — проходите вместе. ' + (TOUCH ? 'Кнопки внизу' : 'Клавиши 1–4') + ' — быстрый чат.</p><b>Кликни, чтобы начать</b>', start);
+    },
+    onMsg(m) { if (my === net.gen) onNetMsg(m); },
+    onClose() { if (my === net.gen) lostHost(); },
+    onError(e) {
+      if (my !== net.gen) return;
+      leaveNet();
+      if (started) { lostHost(); return; }
+      showLobby(e === 'notfound' ? 'Комната не найдена. Проверь код.' : 'Ошибка связи: ' + e);
+    },
+  });
+  if (!net.link) { leaveNet(); showLobby('Нет PeerJS: для игры вдвоём нужен интернет.'); }
+}
+addEventListener('beforeunload', () => { if (net.link) { net.link.send({ type: 'bye' }); net.link.close(); } });
+
+function showLobby(msg = '') {
+  showOverlay(
+    '<h1>КОЧ РУМС</h1>' +
+    '<p>После школы ты идёшь домой с Кочем. Дальше всё пойдёт не так.</p>' +
+    (TOUCH ? '<p>Левый палец — ходить · правый — смотреть · кнопка E — действие · БЕГ — вкл/выкл бег. Лучше держать телефон горизонтально.</p>' : '<p>WASD — ходить · мышь — смотреть · Shift — вкл/выкл бег · E — действие · P — пауза</p>') +
+    '<p>Вдвоём: один создаёт комнату, друг вводит код и играет за Коча. ' + (TOUCH ? 'Кнопки внизу' : 'Клавиши 1–4') + ' — быстрый чат (Сюда! / Берегись! / Нашёл! / Помоги!)</p>' +
+    '<div class="lobby"><button id="bSolo">Играть одному</button><button id="bHost">Создать комнату</button>' +
+    '<span><input id="codeIn" maxlength="5" placeholder="КОД" autocomplete="off"><button id="bJoin">Войти по коду</button></span></div>' +
+    '<div class="lobby"><button id="bDlc">DLC: Вторая личность</button></div>' +
+    '<p id="lobbyMsg"></p>'
+  );
+  $('lobbyMsg').textContent = msg;
+  $('bSolo').onclick = () => { leaveNet(); setMode('main'); start(); };
+  $('bHost').onclick = () => { setMode('main'); hostRoom(); };
+  $('bJoin').onclick = () => joinRoom($('codeIn').value);
+  $('bDlc').onclick = () => showDlcMenu();
+}
+function showDlcMenu() {
+  showOverlay(
+    '<h1>ВТОРАЯ ЛИЧНОСТЬ</h1>' +
+    '<p>DLC, психологический хоррор. Теперь ты — Коч. Один день из его жизни: 12 ноября, ему 14 лет. Только почему никто не помнит про день рождения?</p>' +
+    '<p>12 глав: утро, завтрак с семьёй, двор, дуэль в столовой, урок, вечер, комп, сон про детство, ночь, палата №6, коридор и день рождения. Твои решения меняют финал — концовки две.</p>' +
+    '<p>Вдвоём: создай комнату — друг вводит код в главном меню и играет за брата Коча.</p>' +
+    '<div class="lobby"><button id="bDSolo">Играть одному</button><button id="bDHost">Создать комнату</button><button id="bDBack">Назад</button></div>'
+  );
+  $('bDSolo').onclick = () => { leaveNet(); setMode('dlc'); start(); };
+  $('bDHost').onclick = () => { setMode('dlc'); hostRoom(); };
+  $('bDBack').onclick = () => showLobby();
+}
+// switch between the main story and the DLC before the game starts (rebuilds the first scene)
+function setMode(m) {
+  if (started || story.mode === m) return;
+  story.reset(m);
+  sid++;
+  cur = BUILDERS[story.state]();
+  cur.sid = sid;
+}
+
+// =====================================================================
+// Boot
+// =====================================================================
+function start() {
+  if (started) return;
+  started = true;
+  audio.start(); requestLock(); hideOverlay();
+  if (TOUCH) {
+    try { const r = document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); if (r && r.catch) r.catch(() => {}); } catch (e) { /* optional */ }
+    try { const o = screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape'); if (o && o.catch) o.catch(() => {}); } catch (e) { /* optional */ }
+  }
+  paused = false;
+  if (cur && cur.begin) cur.begin(sid);
+}
+
+// debug: ?scene=backrooms (and optional &seed=N) jumps ahead in the story
+{
+  if (params.get('dlc')) story.reset('dlc');
+  const order = isDlc() ? L.DLC_ORDER :['school', 'walk', 'home', 'toilet', 'fall', 'backrooms', 'asylum'];
+  const target = params.get('scene');
+  const n = target ? Math.max(0, order.indexOf(target)) : 0;
+  const lvl = Math.max(0, Math.min(story.levels - 1, Number(params.get('level')) || 0));
+  if (isDlc()) { for (let i = 0; i < n; i++) story.advance(); story.level = lvl; }
+  else {
+    for (let i = 0; i < Math.min(n, 5); i++) story.advance();
+    if (params.get('level')) story.level = lvl;
+    if (target === 'asylum') { story.level = 2; story.onExit(); }
+  }
+  sid++;
+  cur = BUILDERS[story.state]();
+  cur.sid = sid;
+}
+window.__game = { get paused() { return paused; }, gt: () => gameTime, story, player, get cur() { return cur; }, enterState, camera, scene, L, THREE, net, start, hostRoom, joinRoom, showLobby };
+
+showLobby();
+if (params.get('autostart')) start();
+</script>
+</body>
+</html>
